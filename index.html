@@ -7,8 +7,30 @@
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-    <h1>Video Editor</h1>
+    <div class="container">
+        <h1>Video Editor</h1>
 
+        <div class="upload-section">
+            <input type="file" id="video-upload" accept="video/*" multiple>
+            <button id="upload-btn">Add Videos</button>
+        </div>
 
+        <div class="preview-section">
+            <canvas id="preview-canvas"></canvas>
+
+            <div class="controls">
+                <button id="play-btn">Play</button>
+                <button id="pause-btn">Pause</button>
+            </div>
+        </div>
+
+        <div class="timeline-section">
+            <div id="timeline-container"></div>
+        </div>
+
+        <div class="export-section">
+            <button id="export-btn">Export Video</button>
+        </div>
+    </div>
 </body>
 </html>
