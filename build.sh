@@ -1,17 +1,17 @@
-source ~/emsdk/emsdk_env.sh
+#!/bin/bash
+source ./emsdk/emsdk_env.sh
 
 mkdir -p build
 
 echo "Compiling C++ to WASM..."
-em++ \
+emcc \
     cpp/video.cpp \
-    -o build/video.wasm \
+    -o build/video.js \
     -O3 \
     -s WASM=1 \
-    -s EXPORTED_FUNCTIONS='["_alloc", "_free", "_grayscale"]' \
+    -s EXPORTED_FUNCTIONS='["_malloc", "_freeMemory", "_alloc", "_grayscale"]' \
     -s EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]' \
     -s ALLOW_MEMORY_GROWTH=1 \
-    -s ENVIRONMENT=web \
-    -s NO_EXIT_RUNTIME=0
+    -s INITIAL_MEMORY=67108864
 
-echo "Build complete! WASM module created at build/video.wasm"
+echo "Build complete!"
