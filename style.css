@@ -2,8 +2,75 @@ body {
     font-family: sans-serif;
     padding: 20px;
 }
-  
+
 input {
     margin: 5px;
 }
-  
+
+#mainPreview {
+    display: block;
+    margin: 20px auto;
+    border-radius: 10px;
+    border: 1px solid #ccc;
+}
+
+#timelineContainer {
+    position: relative;
+    margin-top: 50px;
+    height: 120px;
+    overflow-x: auto;
+    white-space: nowrap;
+    background-color: #f5f5f5;
+    border-top: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
+    padding: 10px 0;
+}
+
+#timelineStrip {
+    position: relative;
+    height: 100px;
+    display: inline-block;
+}
+
+.frame {
+    display: inline-block;
+    width: 40px;
+    height: 100px;
+    background-size: cover;
+    background-position: center;
+    border-right: 1px solid #ddd;
+    box-sizing: border-box;
+    cursor: pointer;
+}
+
+#playhead {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: red;
+    z-index: 10;
+    pointer-events: none;
+}
+
+#videoUploader {
+    display: block;
+    margin: 20px auto;
+}
+
+.video-marker {
+    position: absolute;
+    bottom: 0;
+    height: 10px;
+    background-color: rgba(0, 0, 255, 0.3);
+    z-index: 5;
+}
+
+.video-label {
+    position: absolute;
+    bottom: 15px;
+    font-size: 12px;
+    color: #333;
+    z-index: 5;
+    pointer-events: none;
+}

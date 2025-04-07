@@ -15,8 +15,18 @@
     <p id="result">Result: </p>
 
     <h1>Video Editor</h1>
+
+    <!-- Top preview player -->
+    <video id="mainPreview" width="640" height="360" controls></video>
+
+     <!-- File upload input -->
     <input type="file" id="videoUploader" accept="video/*" multiple>
-    <div id="videoContainer"></div>
+
+    <!-- Timeline container -->
+     <div id="timelineContainer">
+        <div id="timelineStrip"></div>
+        <div id="playhead"></div>
+     </div>
 
     <script src="code.js"></script>
     <script src="main.js"></script>

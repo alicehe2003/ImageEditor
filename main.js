@@ -13,35 +13,256 @@ function addNumbers() {
 }
 
 
-// DOM is loaded 
 document.addEventListener('DOMContentLoaded', () => {
-    // Upload and display video 
-    const videoInput = document.getElementById('videoUploader'); 
-    const videoContainer = document.getElementById('videoContainer'); 
+    const videoInput = document.getElementById('videoUploader');
+    const timelineStrip = document.getElementById('timelineStrip');
+    const mainPreview = document.getElementById('mainPreview');
+    const playhead = document.getElementById('playhead');
+    const timelineContainer = document.getElementById('timelineContainer');
+    
+    let videos = [];
+    let videoDurations = [];
+    let totalDuration = 0;
+    let isDragging = false;
+    // 1 frame every 2 seconds
+    let framesPerSecond = 0.5; 
+    
+    // Handle file upload
+    videoInput.addEventListener('change', async function() {
+        const files = Array.from(this.files);
 
-    videoInput.addEventListener('change', function () {
-        // Convert FileList to Array
-        const files = Array.from(this.files);  
-
-        files.forEach(file => {
+        for (const file of files) {
             if (file.type.startsWith('video/')) {
-                const videoURL = URL.createObjectURL(file); 
-
-                // Create a new video element 
-                const video = document.createElement('video'); 
-                video.src = videoURL; 
-                // TODO: custom width and height 
-                video.width = 640; 
-                video.height = 360; 
-                video.controls = true; 
-                video.style.marginBottom = '20px'; 
-
-                // Add to container 
-                videoContainer.appendChild(video); 
+                const videoURL = URL.createObjectURL(file);
+                const video = document.createElement('video');
+                video.src = videoURL;
+                
+                // Wait for video metadata to load
+                await new Promise((resolve) => {
+                    video.addEventListener('loadedmetadata', resolve);
+                    video.load();
+                });
+                
+                videos.push({
+                    element: video,
+                    url: videoURL,
+                    duration: video.duration,
+                    name: file.name
+                });
+                
+                videoDurations.push(video.duration);
+                totalDuration += video.duration;
             }
-        }); 
-
-        this.value = ''; 
-    }); 
-}); 
-
+        }
+        
+        if (videos.length > 0) {
+            createTimelineStrip();
+            setupMainVideo();
+        }
+        
+        this.value = '';
+    });
+    
+    // Create the timeline strip with frames
+    function createTimelineStrip() {
+        timelineStrip.innerHTML = '';
+        
+        // Calculate total number of frames needed
+        const totalFrames = Math.ceil(totalDuration * framesPerSecond);
+        const frameWidth = 40;
+        
+        // Set the width of the timeline strip
+        timelineStrip.style.width = `${totalFrames * frameWidth}px`;
+        
+        // Create frames for each video
+        let currentPosition = 0;
+        
+        videos.forEach((video, videoIndex) => {
+            const framesForVideo = Math.ceil(video.duration * framesPerSecond);
+            const videoElement = video.element;
+            
+            // Create a marker showing where this video starts and ends
+            const marker = document.createElement('div');
+            marker.className = 'video-marker';
+            marker.style.left = `${currentPosition * frameWidth}px`;
+            marker.style.width = `${framesForVideo * frameWidth}px`;
+            timelineStrip.appendChild(marker);
+            
+            // Add video label
+            const label = document.createElement('div');
+            label.className = 'video-label';
+            label.style.left = `${currentPosition * frameWidth}px`;
+            label.textContent = video.name;
+            timelineStrip.appendChild(label);
+            
+            // Create frames
+            for (let i = 0; i < framesForVideo; i++) {
+                const frameTime = i / framesPerSecond;
+                const frame = document.createElement('div');
+                frame.className = 'frame';
+                
+                // Capture frame at this time
+                captureFrame(videoElement, frameTime).then(url => {
+                    frame.style.backgroundImage = `url(${url})`;
+                });
+                
+                frame.dataset.videoIndex = videoIndex;
+                frame.dataset.frameTime = frameTime;
+                frame.dataset.globalTime = currentPosition / framesPerSecond + frameTime;
+                
+                timelineStrip.appendChild(frame);
+                currentPosition++;
+            }
+        });
+    
+        // Setup playhead dragging
+        setupPlayheadInteraction();
+    }
+    
+    // Capture a frame from a video at a specific time
+    function captureFrame(video, time) {
+        return new Promise((resolve) => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 80;
+            canvas.height = 60;
+            const ctx = canvas.getContext('2d');
+            
+            video.currentTime = time;
+            
+            video.addEventListener('seeked', function() {
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                resolve(canvas.toDataURL());
+            }, { once: true });
+        });
+    }
+    
+    // Setup the main video player with all videos concatenated
+    function setupMainVideo() {
+        if (videos.length === 0) return;
+        
+        // For simplicity, we'll just play the first video
+        // In a real implementation, you'd need to concatenate the videos
+        mainPreview.src = videos[0].url;
+        mainPreview.currentTime = 0;
+        
+        // Update playhead position as video plays
+        mainPreview.addEventListener('timeupdate', updatePlayheadPosition);
+        
+        // When video ends, play next one if available
+        mainPreview.addEventListener('ended', playNextVideo);
+    }
+    
+    function playNextVideo() {
+        const currentIndex = videos.findIndex(v => v.url === mainPreview.src);
+        if (currentIndex < videos.length - 1) {
+            mainPreview.src = videos[currentIndex + 1].url;
+            mainPreview.play();
+        }
+    }
+    
+    // Update playhead position based on current video time
+    function updatePlayheadPosition() {
+        const currentVideo = videos.find(v => v.url === mainPreview.src);
+        if (!currentVideo) return;
+        
+        const videoIndex = videos.indexOf(currentVideo);
+        let globalTime = 0;
+        
+        // Calculate global time by adding durations of previous videos
+        for (let i = 0; i < videoIndex; i++) {
+            globalTime += videos[i].duration;
+        }
+        
+        globalTime += mainPreview.currentTime;
+        
+        // Position playhead
+        const playheadPosition = globalTime * framesPerSecond * 40; // 40px per frame
+        playhead.style.left = `${playheadPosition}px`;
+        
+        // Scroll timeline to keep playhead visible
+        const containerWidth = timelineContainer.clientWidth;
+        const scrollLeft = timelineContainer.scrollLeft;
+        
+        if (playheadPosition < scrollLeft || playheadPosition > scrollLeft + containerWidth) {
+            timelineContainer.scrollLeft = playheadPosition - containerWidth / 2;
+        }
+    }
+    
+    // Setup playhead dragging interaction
+    function setupPlayheadInteraction() {
+        playhead.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            document.addEventListener('mousemove', movePlayhead);
+            document.addEventListener('mouseup', stopDrag);
+            e.preventDefault();
+        });
+        
+        timelineContainer.addEventListener('click', (e) => {
+            if (isDragging) return;
+            
+            const rect = timelineContainer.getBoundingClientRect();
+            const x = e.clientX - rect.left + timelineContainer.scrollLeft;
+            const globalTime = x / (framesPerSecond * 40);
+            
+            seekToGlobalTime(globalTime);
+        });
+    }
+    
+    function movePlayhead(e) {
+        if (!isDragging) return;
+        
+        const rect = timelineContainer.getBoundingClientRect();
+        let x = e.clientX - rect.left + timelineContainer.scrollLeft;
+        
+        // Constrain to timeline boundaries
+        const maxX = totalDuration * framesPerSecond * 40;
+        x = Math.max(0, Math.min(x, maxX));
+        
+        const globalTime = x / (framesPerSecond * 40);
+        
+        // Update playhead position
+        playhead.style.left = `${x}px`;
+        
+        // Seek video to this time
+        seekToGlobalTime(globalTime);
+    }
+    
+    function stopDrag() {
+        isDragging = false;
+        document.removeEventListener('mousemove', movePlayhead);
+        document.removeEventListener('mouseup', stopDrag);
+    }
+    
+    // Seek to a specific global time across all videos
+    function seekToGlobalTime(globalTime) {
+        let accumulatedTime = 0;
+        let targetVideoIndex = 0;
+        let targetTime = 0;
+        
+        // Find which video contains this global time
+        for (let i = 0; i < videos.length; i++) {
+            if (globalTime <= accumulatedTime + videos[i].duration) {
+                targetVideoIndex = i;
+                targetTime = globalTime - accumulatedTime;
+                break;
+            }
+            accumulatedTime += videos[i].duration;
+        }
+        
+        // If time is beyond all videos, use last video's end
+        if (globalTime >= totalDuration) {
+            targetVideoIndex = videos.length - 1;
+            targetTime = videos[targetVideoIndex].duration;
+        }
+        
+        // Play the target video
+        const targetVideo = videos[targetVideoIndex];
+        mainPreview.src = targetVideo.url;
+        mainPreview.currentTime = targetTime;
+        
+        // If we're not at the end, play the video
+        if (targetTime < targetVideo.duration) {
+            mainPreview.play();
+        }
+    }
+});
