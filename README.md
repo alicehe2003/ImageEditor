@@ -35,8 +35,19 @@ Export -> re-encoding -> download
 
 # Notes 
 
-Use `DOMContentLoaded` when you want to run JavaScript as soon as the HTML is fully parsed, but before images, CSS, or other external resources finish loading. In contrast, use `load` when you want to wait until everything is loaded. 
+In `cpp`, use `extern "C"` to avoid C++ name mangling for functions or variables in wraps, making them compatible with C linkage conventions. 
+- C++ uses name mangling to support function overloading and namespace, but C doesn't. Linker will not recognize mangled C++ names unless told to use C-style linkage. 
 
-`initVideoProcessor` in `main.js` is an async function that loads and instantiates the WASM module, streaming it as the file is being downloaded (which is more fficient than downloading the entire file before starting to instantiate it). It returns a WASM instance that includes the module's exports (functions and memory). 
+Use Emscripten to compile C++ to WASM. `emcc code.cpp -s WASM=1 -s EXPORTED_FUNCTIONS='["_add"]' -o code.js` 
+- Creates `code.wasm` - the WebAssembly binary, and `code.js` - the glue JS file to load and call WASM. 
+- This also automatically generates the `Module` JavaScript object. 
+- Emscripten's naming convention: prefix the function name with an underscore in the export list. For example, `add(...)` in C++ compiles to `_add(...)` in JS. 
 
-WASM modules are compiled binaries that contain the executable code for the target architecture (compiles from higher-level languages, such as C++). Loading the module into the browser is the first step to make the code available for execution. 
+`Module` is a JavaScript object responsible for loading the WASM binary and exposing compile C++ functions to JS. 
+- It also includes the WASM memory, runtime environment, and helper functions. 
+
+`onRuntimeInitialized` is a callback function that runs once the WASM module is fully loaded and ready to use. This is needed because you cannot safely call any exported WASM functions until the module is done initializing. 
+
+
+
+
