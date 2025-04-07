@@ -17,18 +17,31 @@ function addNumbers() {
 document.addEventListener('DOMContentLoaded', () => {
     // Upload and display video 
     const videoInput = document.getElementById('videoUploader'); 
-    const videoPlayer = document.getElementById('videoPlayer'); 
+    const videoContainer = document.getElementById('videoContainer'); 
 
     videoInput.addEventListener('change', function () {
-        const file = this.files[0]; 
+        // Convert FileList to Array
+        const files = Array.from(this.files);  
 
-        if (file) {
-            // Create local URL for video file 
-            const videoURL = URL.createObjectURL(file); 
-            // Load into video player 
-            videoPlayer.src = videoURL; 
-            videoPlayer.load(); 
-        }
+        files.forEach(file => {
+            if (file.type.startsWith('video/')) {
+                const videoURL = URL.createObjectURL(file); 
+
+                // Create a new video element 
+                const video = document.createElement('video'); 
+                video.src = videoURL; 
+                // TODO: custom width and height 
+                video.width = 640; 
+                video.height = 360; 
+                video.controls = true; 
+                video.style.marginBottom = '20px'; 
+
+                // Add to container 
+                videoContainer.appendChild(video); 
+            }
+        }); 
+
+        this.value = ''; 
     }); 
 }); 
 
