@@ -25,13 +25,7 @@ TODO
 
 ## Data flow 
 
-Browser -> upload -> JS handlers -> decode to raw frames 
-
-Raw frames -> WASM processing -> manipulate frames 
-
-Timeline adjustments -> re-composition of video segments 
-
-Export -> re-encoding -> download 
+Videos are uploaded by user, and event listener iterates through each file and saves each video info to list of videos and tracks total duration of videos. It then calls `createTimelineStrip` followed by `setupMainVideo`. 
 
 # Notes 
 

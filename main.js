@@ -26,9 +26,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let isDragging = false;
     // 1 frame every 2 seconds
     let framesPerSecond = 0.5; 
+    let frameWidth = 40; 
     
     // Handle file upload
     videoInput.addEventListener('change', async function() {
+        // Convert to array of (video) files 
         const files = Array.from(this.files);
 
         for (const file of files) {
@@ -57,22 +59,27 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (videos.length > 0) {
             createTimelineStrip();
-            setupMainVideo();
+            // Pass false to indicate no autoplay 
+            setupMainVideo(false);
         }
         
+        // Reset videoInput, clearing file selection - allows re-selection of the same file
         this.value = '';
     });
     
     // Create the timeline strip with frames
     function createTimelineStrip() {
         timelineStrip.innerHTML = '';
+
+        // Ensure video is right side up 
+        mainPreview.style.transform = 'rotate(0deg)'; 
         
         // Calculate total number of frames needed
         const totalFrames = Math.ceil(totalDuration * framesPerSecond);
-        const frameWidth = 40;
         
         // Set the width of the timeline strip
-        timelineStrip.style.width = `${totalFrames * frameWidth}px`;
+        const timelineWidth = totalFrames * frameWidth;
+        timelineStrip.style.width = `${timelineWidth}px`;
         
         // Create frames for each video
         let currentPosition = 0;
@@ -80,6 +87,8 @@ document.addEventListener('DOMContentLoaded', () => {
         videos.forEach((video, videoIndex) => {
             const framesForVideo = Math.ceil(video.duration * framesPerSecond);
             const videoElement = video.element;
+
+            videoElement.style.transform = 'rotate(0deg)';
             
             // Create a marker showing where this video starts and ends
             const marker = document.createElement('div');
@@ -100,6 +109,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const frameTime = i / framesPerSecond;
                 const frame = document.createElement('div');
                 frame.className = 'frame';
+
+                // For the last frame of a video, check if it's a partial frame
+                if (i === framesForVideo - 1 && video.duration % (1/framesPerSecond) !== 0) {
+                    // Calculate what fraction of a frame this represents
+                    const fraction = (video.duration % (1/framesPerSecond)) / (1/framesPerSecond);
+                    frame.style.width = `${frameWidth * fraction}px`;
+                } else {
+                    frame.style.width = `${frameWidth}px`;
+                }
                 
                 // Capture frame at this time
                 captureFrame(videoElement, frameTime).then(url => {
@@ -137,13 +155,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Setup the main video player with all videos concatenated
-    function setupMainVideo() {
+    function setupMainVideo(autoplay = false) {
         if (videos.length === 0) return;
         
-        // For simplicity, we'll just play the first video
-        // In a real implementation, you'd need to concatenate the videos
         mainPreview.src = videos[0].url;
         mainPreview.currentTime = 0;
+        // Pause at start 
+        mainPreview.pause(); 
         
         // Update playhead position as video plays
         mainPreview.addEventListener('timeupdate', updatePlayheadPosition);
@@ -223,8 +241,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update playhead position
         playhead.style.left = `${x}px`;
         
-        // Seek video to this time
-        seekToGlobalTime(globalTime);
+        // Seek video to this time, prevent autoplay 
+        seekToGlobalTime(globalTime, false);
     }
     
     function stopDrag() {
@@ -234,7 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Seek to a specific global time across all videos
-    function seekToGlobalTime(globalTime) {
+    function seekToGlobalTime(globalTime, shouldPlay = false) {
         let accumulatedTime = 0;
         let targetVideoIndex = 0;
         let targetTime = 0;
@@ -260,9 +278,11 @@ document.addEventListener('DOMContentLoaded', () => {
         mainPreview.src = targetVideo.url;
         mainPreview.currentTime = targetTime;
         
-        // If we're not at the end, play the video
-        if (targetTime < targetVideo.duration) {
-            mainPreview.play();
+        // Only play if explicitly requested 
+        if (shouldPlay) {
+            mainPreview.play(); 
+        } else {
+            mainPreview.pause(); 
         }
     }
 });
