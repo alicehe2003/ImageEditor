@@ -7,11 +7,35 @@ input {
     margin: 5px;
 }
 
+.control-panel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px; 
+    margin: 20px 0; 
+}
+
+select {
+    padding: 8px; 
+    border-radius: 4px; 
+    border: 1px solid #ccc; 
+}
+
+label {
+    font-weight: bold;
+}
+
 #mainPreview {
     display: block;
     margin: 20px auto;
     border-radius: 10px;
     border: 1px solid #ccc;
+}
+
+#mainPreviewContainer {
+    position: relative;
+    margin: 20px auto;
+    width: fit-content;
 }
 
 #timelineContainer {

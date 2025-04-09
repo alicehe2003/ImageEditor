@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const mainPreview = document.getElementById('mainPreview');
     const playhead = document.getElementById('playhead');
     const timelineContainer = document.getElementById('timelineContainer');
+    const aspectRatioSelect = document.getElementById('aspectRatio');
     
     let videos = [];
     let videoDurations = [];
@@ -28,6 +29,32 @@ document.addEventListener('DOMContentLoaded', () => {
     let framesPerSecond = 0.5; 
     let frameWidth = 120; // Increased frame width from 40 to 120 for wider timeline pictures
     
+    // Handle aspect ratio changes 
+    aspectRatioSelect.addEventListener('change', function() {
+        applyAspectRatio(this.value); 
+    }); 
+
+    // Apply selected aspect ration to the main preview 
+    function applyAspectRatio(ratio) {
+        const container = document.getElementById('mainPreviewContainer'); 
+        const video = mainPreview; 
+
+        if (!video) return; 
+
+        // Reset any previous styling
+        video.style.width = '';
+        video.style.height = '';
+        
+        // Extract width and height from ratio (e.g., "16:9", "4:3")
+        const [w, h] = ratio.split(':').map(Number);
+        const baseWidth = 640; // Base width
+        const calculatedHeight = baseWidth * (h / w);
+        
+        // Apply new dimensions
+        video.style.width = baseWidth + 'px';
+        video.style.height = calculatedHeight + 'px';
+    }
+
     // Handle file upload
     videoInput.addEventListener('change', async function() {
         // Convert to array of (video) files 
@@ -61,6 +88,8 @@ document.addEventListener('DOMContentLoaded', () => {
             createTimelineStrip();
             // Pass false to indicate no autoplay 
             setupMainVideo(false);
+            // Apply currently selected aspect ratio 
+            applyAspectRatio(aspectRatioSelect.value); 
         }
         
         // Reset videoInput, clearing file selection - allows re-selection of the same file
@@ -71,9 +100,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function createTimelineStrip() {
         timelineStrip.innerHTML = '';
         
-        // Apply CSS to fix upside-down videos
-        mainPreview.style.transform = 'rotate(0deg)'; // Ensure video is right side up
-        
+        for (const video of videos) {
+            video.element.style.transform = '';
+        }
+
         // Calculate total number of frames needed
         const totalFrames = Math.ceil(totalDuration * framesPerSecond);
         
@@ -88,8 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const framesForVideo = Math.ceil(video.duration * framesPerSecond);
             const videoElement = video.element;
             
-            // Add CSS to fix upside-down video elements
-            videoElement.style.transform = 'rotate(0deg)';
+            videoElement.style.transform = '';
             
             // Create a marker showing where this video starts and ends
             const marker = document.createElement('div');
@@ -143,19 +172,15 @@ document.addEventListener('DOMContentLoaded', () => {
         return new Promise((resolve) => {
             const canvas = document.createElement('canvas');
             // Increase canvas width to match our wider frames
-            canvas.width = 240; // Increased from 80 to 240 for higher quality thumbnails
-            canvas.height = 180; // Increased from 60 to 180 to maintain aspect ratio
+            canvas.width = 240; 
+            canvas.height = 180; 
             const ctx = canvas.getContext('2d');
             
             video.currentTime = time;
             
             video.addEventListener('seeked', function() {
-                // Fix for upside-down images in the timeline
-                ctx.save();
-                ctx.translate(0, 0);
-                ctx.scale(1, 1); // Normal orientation
+                // Draw the video frame 
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                ctx.restore();
                 resolve(canvas.toDataURL());
             }, { once: true });
         });
@@ -167,6 +192,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         mainPreview.src = videos[0].url;
         mainPreview.currentTime = 0;
+        mainPreview.style.transform = ''; 
+
         // Pause at start 
         mainPreview.pause(); 
         
@@ -175,6 +202,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // When video ends, play next video if available
         mainPreview.addEventListener('ended', playNextVideo);
+
+        // Apply current aspect ratio
+        applyAspectRatio(aspectRatioSelect.value);
     }
     
     function playNextVideo() {
@@ -292,4 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
             mainPreview.pause();
         }
     }
+
+    // Initialize with default aspect ratio
+    applyAspectRatio(aspectRatioSelect.value);
 });

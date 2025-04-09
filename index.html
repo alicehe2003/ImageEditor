@@ -16,8 +16,25 @@
 
     <h1>Video Editor</h1>
 
-    <!-- Top preview player -->
-    <video id="mainPreview" width="640" height="360" controls></video>
+    <!-- Top preview player with container -->
+    <div id="mainPreviewContainer">
+        <video id="mainPreview" width="640" height="360" controls></video>
+    </div>
+
+    <!-- Control panel with aspect ratio dropdown -->
+    <div class="control-panel">
+        <label for="aspectRatio">Aspect Ratio:</label>
+        <select id="aspectRatio">
+            <option value="16:9">16:9 (Standard Widescreen)</option>
+            <option value="4:3">4:3 (Traditional TV)</option>
+            <option value="1:1">1:1 (Square)</option>
+            <option value="9:16">9:16 (Vertical/Mobile)</option>
+            <option value="21:9">21:9 (Ultrawide)</option>
+            <option value="2.35:1">2.35:1 (Cinemascope)</option>
+            <option value="3:2">3:2 (Traditional Photo)</option>
+            <option value="5:4">5:4 (Computer Monitor)</option>
+        </select>
+    </div>
 
      <!-- File upload input -->
     <input type="file" id="videoUploader" accept="video/*" multiple>
