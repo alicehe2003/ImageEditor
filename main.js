@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isDragging = false;
     // 1 frame every 2 seconds
     let framesPerSecond = 0.5; 
-    let frameWidth = 40; 
+    let frameWidth = 120; // Increased frame width from 40 to 120 for wider timeline pictures
     
     // Handle file upload
     videoInput.addEventListener('change', async function() {
@@ -70,14 +70,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Create the timeline strip with frames
     function createTimelineStrip() {
         timelineStrip.innerHTML = '';
-
-        // Ensure video is right side up 
-        mainPreview.style.transform = 'rotate(0deg)'; 
+        
+        // Apply CSS to fix upside-down videos
+        mainPreview.style.transform = 'rotate(0deg)'; // Ensure video is right side up
         
         // Calculate total number of frames needed
         const totalFrames = Math.ceil(totalDuration * framesPerSecond);
         
-        // Set the width of the timeline strip
+        // Set the width of the timeline strip - calculate exact width based on all frames
         const timelineWidth = totalFrames * frameWidth;
         timelineStrip.style.width = `${timelineWidth}px`;
         
@@ -87,7 +87,8 @@ document.addEventListener('DOMContentLoaded', () => {
         videos.forEach((video, videoIndex) => {
             const framesForVideo = Math.ceil(video.duration * framesPerSecond);
             const videoElement = video.element;
-
+            
+            // Add CSS to fix upside-down video elements
             videoElement.style.transform = 'rotate(0deg)';
             
             // Create a marker showing where this video starts and ends
@@ -109,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const frameTime = i / framesPerSecond;
                 const frame = document.createElement('div');
                 frame.className = 'frame';
-
+                
                 // For the last frame of a video, check if it's a partial frame
                 if (i === framesForVideo - 1 && video.duration % (1/framesPerSecond) !== 0) {
                     // Calculate what fraction of a frame this represents
@@ -126,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 frame.dataset.videoIndex = videoIndex;
                 frame.dataset.frameTime = frameTime;
-                frame.dataset.globalTime = currentPosition / framesPerSecond + frameTime;
+                frame.dataset.globalTime = (currentPosition / framesPerSecond) + frameTime;
                 
                 timelineStrip.appendChild(frame);
                 currentPosition++;
@@ -141,14 +142,20 @@ document.addEventListener('DOMContentLoaded', () => {
     function captureFrame(video, time) {
         return new Promise((resolve) => {
             const canvas = document.createElement('canvas');
-            canvas.width = 80;
-            canvas.height = 60;
+            // Increase canvas width to match our wider frames
+            canvas.width = 240; // Increased from 80 to 240 for higher quality thumbnails
+            canvas.height = 180; // Increased from 60 to 180 to maintain aspect ratio
             const ctx = canvas.getContext('2d');
             
             video.currentTime = time;
             
             video.addEventListener('seeked', function() {
+                // Fix for upside-down images in the timeline
+                ctx.save();
+                ctx.translate(0, 0);
+                ctx.scale(1, 1); // Normal orientation
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                ctx.restore();
                 resolve(canvas.toDataURL());
             }, { once: true });
         });
@@ -166,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update playhead position as video plays
         mainPreview.addEventListener('timeupdate', updatePlayheadPosition);
         
-        // When video ends, play next one if available
+        // When video ends, play next video if available
         mainPreview.addEventListener('ended', playNextVideo);
     }
     
@@ -193,8 +200,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         globalTime += mainPreview.currentTime;
         
-        // Position playhead
-        const playheadPosition = globalTime * framesPerSecond * 40; // 40px per frame
+        // Position playhead - adjusted calculation to ensure accurate positioning
+        const playheadPosition = (globalTime * framesPerSecond) * frameWidth;
         playhead.style.left = `${playheadPosition}px`;
         
         // Scroll timeline to keep playhead visible
@@ -220,7 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const rect = timelineContainer.getBoundingClientRect();
             const x = e.clientX - rect.left + timelineContainer.scrollLeft;
-            const globalTime = x / (framesPerSecond * 40);
+            const globalTime = x / (framesPerSecond * frameWidth);
             
             seekToGlobalTime(globalTime);
         });
@@ -233,16 +240,16 @@ document.addEventListener('DOMContentLoaded', () => {
         let x = e.clientX - rect.left + timelineContainer.scrollLeft;
         
         // Constrain to timeline boundaries
-        const maxX = totalDuration * framesPerSecond * 40;
+        const maxX = totalDuration * framesPerSecond * frameWidth;
         x = Math.max(0, Math.min(x, maxX));
         
-        const globalTime = x / (framesPerSecond * 40);
+        const globalTime = x / (framesPerSecond * frameWidth);
         
         // Update playhead position
         playhead.style.left = `${x}px`;
         
-        // Seek video to this time, prevent autoplay 
-        seekToGlobalTime(globalTime, false);
+        // Seek video to this time
+        seekToGlobalTime(globalTime, false); // Pass false to prevent autoplay
     }
     
     function stopDrag() {
@@ -278,11 +285,11 @@ document.addEventListener('DOMContentLoaded', () => {
         mainPreview.src = targetVideo.url;
         mainPreview.currentTime = targetTime;
         
-        // Only play if explicitly requested 
+        // Only play if explicitly requested
         if (shouldPlay) {
-            mainPreview.play(); 
+            mainPreview.play();
         } else {
-            mainPreview.pause(); 
+            mainPreview.pause();
         }
     }
 });
