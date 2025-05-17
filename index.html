@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Editor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <input type="file" id="upload" accept="image/*" />
+    <button onclick="makeGreyscale()">Grayscale</button>
+    <canvas id="canvas"></canvas>
+
+    <script src="script.js"></script>
+    <script src="image_ops.cpp"></script> <!-- Output from Emscripten -->
+</body>
+</html>
