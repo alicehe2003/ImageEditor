@@ -17,4 +17,16 @@ Run the following in the command line:
 
 It compiles the C++ file and outputs `image_processor.wasm` (the compiled WASM) and `image_processor.js` (the JS wrapper). `_malloc` and `_free` allows JS to allocate and free memory in WASM. `HEAPU8` is used by JS to access raw WASM memory as a Uint8Array. Memory growth in WASM is allowed if needed (such as for large images). 
 
+### Extern C 
 
+`extern "C"` is a directive in C++ that tells the compiler to use C-style naming for functions so they can be called from other languages. C++ mangles function names (adds extra info like parameter types) to support function overloading. This makes the compiler names unreadable or inconsistent for other languages. 
+
+
+### RGBA 
+
+RGB are the colours red, green, and blue respectively, each in the range 0 - 255. Alpha is the opacity/transparency, also in the range 0 - 255. 
+
+# Additional functionalities - TODO
+
+
+# Known bugs
