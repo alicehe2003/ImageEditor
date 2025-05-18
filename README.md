@@ -10,7 +10,7 @@ Run the following in the command line:
   -o image_processor.js \
   -s MODULARIZE=1 \
   -s 'EXPORT_NAME="Module"' \
-  -s EXPORTED_FUNCTIONS='["_monochrome_average", "_malloc", "_free"]' \
+  -s EXPORTED_FUNCTIONS='["_monochrome_average", "_monochrome_luminosity", "_monochrome_lightness", "_monochrome_itu", "_malloc", "_free"]' \
   -s EXPORTED_RUNTIME_METHODS='["ccall", "cwrap", "HEAPU8"]' \
   -s ALLOW_MEMORY_GROWTH=1 \
   -O2` 
@@ -40,9 +40,9 @@ Key differences:
 
 # Current features 
 
+## Upload file 
 
-
-# Additional functionalities - TODO
+Select image file to upload to browser. 
 
 ## Monochromatic filters 
 
@@ -52,7 +52,11 @@ Implement various types, including the average method, the luminosity method, th
 - The lightness method keeps the contrast between the brightest and darkest parts, but ignores mid-tone details. `gray = (max(R,G,B) + min(R, G, B)) / 2`
 - The ITU-R BT.709 reflects the modern expectations for grayscale conversion. `gray = 0.2126 * R + 0.7152 * G + 0.0722 * B`
 
+# Additional functionalities - TODO
 
-## 
+
+
+
+
 
 # Known bugs
