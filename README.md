@@ -46,7 +46,12 @@ Key differences:
 
 ## Monochromatic filters 
 
-Implement various types, including the average method, the luminosity method, the lightness method, NTSC/ITU-R recommendations for broadcast-safe grayscale 
+Implement various types, including the average method, the luminosity method, the lightness method, ITU-R BT.709 recommendations for modern digital media (such as YouTube, HDTV, or FFmpeg). 
+- The average method is simple but does not reflect human visual perception as it treats all colours equally. `gray = (R + G + B) / 3`
+- The luminosity method is the common standard, gives best visual quality and realism. Slightly slower to calculate does to floating point math. `gray = 0.299 * R + 0.587 * G + 0.114 * B` 
+- The lightness method keeps the contrast between the brightest and darkest parts, but ignores mid-tone details. `gray = (max(R,G,B) + min(R, G, B)) / 2`
+- The ITU-R BT.709 reflects the modern expectations for grayscale conversion. `gray = 0.2126 * R + 0.7152 * G + 0.0722 * B`
+
 
 ## 
 
