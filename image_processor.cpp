@@ -9,7 +9,7 @@ extern "C" {
      * data layout: [pixel_0_R, pixel_0_G, pixel_0_B, pixel_0_A, 
      *               pixel_1_R, pixel_1_G, pixel_1_B, pixel_1_A, ...]
      */
-    void make_monochrome(uint8_t* data, int width, int height) {
+    void monochrome_average(uint8_t* data, int width, int height) {
         int size = width * height * 4;
         for (int i = 0; i < size; i += 4) {
             uint8_t r = data[i];

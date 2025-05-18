@@ -31,8 +31,8 @@ Module().then((mod) => {
     img.src = URL.createObjectURL(file);
   });
 
-  // Wait for button click with ID "monochrome"
-  document.getElementById("monochrome").addEventListener("click", () => {
+  // Wait for button click with ID "monochrome_average"
+  document.getElementById("monochrome_average").addEventListener("click", () => {
     if (!imageData) return;
 
     // Calculate the number of bytes needed for the image data (width * height * 4)
@@ -45,13 +45,13 @@ Module().then((mod) => {
     const heap = new Uint8Array(wasmModule.HEAPU8.buffer, dataPtr, len);
     heap.set(imageData.data);
 
-    // Calls the WASM function make_monochrome
-    // "make_monochrome" is the name of the C++ function (must be exported with 
+    // Calls the WASM function monochrome_average
+    // "monochrome_average" is the name of the C++ function (must be exported with 
     // Emscripten via EXPORTED_FUNCTIONS)
     // null is the return type (void)
     // ["number", "number", "number"] is the type of the arguments
     // [dataPtr, imageData.width, imageData.height] is the argument values 
-    wasmModule.ccall("make_monochrome", null, ["number", "number", "number"],
+    wasmModule.ccall("monochrome_average", null, ["number", "number", "number"],
       [dataPtr, imageData.width, imageData.height]);
 
     // Copies the processed pixel data back into the canvas

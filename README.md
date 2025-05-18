@@ -10,7 +10,7 @@ Run the following in the command line:
   -o image_processor.js \
   -s MODULARIZE=1 \
   -s 'EXPORT_NAME="Module"' \
-  -s EXPORTED_FUNCTIONS='["_make_monochrome", "_malloc", "_free"]' \
+  -s EXPORTED_FUNCTIONS='["_monochrome_average", "_malloc", "_free"]' \
   -s EXPORTED_RUNTIME_METHODS='["ccall", "cwrap", "HEAPU8"]' \
   -s ALLOW_MEMORY_GROWTH=1 \
   -O2` 
@@ -38,7 +38,16 @@ Key differences:
 - `ccall` calls function immediately, while `cwrap` returns a callable JS function. 
 - Use `ccall` for one-off calls, use `cwrap` for repeated calls / better performance. 
 
+# Current features 
+
+
+
 # Additional functionalities - TODO
 
+## Monochromatic filters 
+
+Implement various types, including the average method, the luminosity method, the lightness method, NTSC/ITU-R recommendations for broadcast-safe grayscale 
+
+## 
 
 # Known bugs
