@@ -72,10 +72,18 @@ Gaussian blur uses the Gaussian function to soften an image by smoothing pixel v
 
 ## Revert to original image 
 
+## 
+
 ## TODO 
 
 - Explain the sigma and kernel for Gaussian Blur 
 - Update README with demos of each filter 
-
+- CSS styling and design 
+- Use SIMD instructions for WASM 
+- Consider passing C++ objects instead of pointer to raw data 
+- Check LinkedIn job application requirements 
+- Check Figma 
+- Design using Figma 
+- Open CV library 
 
 # Known bugs
