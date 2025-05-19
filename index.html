@@ -33,6 +33,17 @@
     <h3>Edge detection options</h3>
 
     <button id="edge_sobel">Sobel Method</button>
+
+    <div id="log_controls">
+      <label for="log_sigma">LoG Sigma (0–50):</label>
+      <input type="number" id="log_sigma" min="0" max="50" value="2" />
+  
+      <label for="log_kernel">LoG Kernel Size (odd, 1–50):</label>
+      <input type="number" id="log_kernel" min="1" max="50" step="1" value="5" />
+  
+      <button id="edge_laplacian_of_gaussian">Laplacian of Gaussian</button>
+    </div>
+
   </div>
 
   <canvas id="canvas"></canvas>

@@ -133,4 +133,40 @@ Module().then((mod) => {
     // Free WASM memory
     wasmModule._free(dataPtr);
   });
+
+  // Attach event listener for the Laplacian of Gaussian button
+  document.getElementById("edge_laplacian_of_gaussian").addEventListener("click", () => {
+    if (!imageData) return;
+
+    const sigma = parseFloat(document.getElementById('log_sigma').value);
+    let kernelSize = parseInt(document.getElementById('log_kernel').value);
+
+    // Validate ranges 
+    if (isNaN(sigma) || sigma < 0 || sigma > 50) {
+      alert("Sigma must be between 0 and 50");
+      return;
+    }
+
+    if (isNaN(kernelSize) || kernelSize < 1 || kernelSize > 50 || kernelSize % 2 === 0) {
+      alert("Kernel size must an odd number be between 1 and 50");
+      return;
+    }
+
+    // Allocate WASM memory 
+    const len = imageData.data.length;
+    const dataPtr = wasmModule._malloc(len);
+    const heap = new Uint8Array(wasmModule.HEAPU8.buffer, dataPtr, len);
+    heap.set(imageData.data);
+
+    // Call Laplacian of Gaussian function in WASM 
+    wasmModule.ccall("edge_laplacian_of_gaussian", null, ["number", "number", "number", "number"],
+      [dataPtr, imageData.width, imageData.height, sigma, kernelSize]);
+
+    // Copy the result back into JS memory and render 
+    imageData.data.set(heap);
+    ctx.putImageData(imageData, 0, 0);
+
+    // Free WASM memory
+    wasmModule._free(dataPtr);
+  }); 
 });

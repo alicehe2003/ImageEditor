@@ -180,4 +180,57 @@ extern "C" {
 
         delete[] temp; // Clean up temporary buffer
     }
+
+    void laplacian_filter(uint8_t* data, int width, int height) {
+        int size = width * height * 4; 
+        uint8_t* temp = new uint8_t[size]; 
+        std::copy(data, data + size, temp);
+
+        // Laplacian kernel
+        const int kernel[3][3] = {
+            {-1, -1, -1},
+            {-1,  8, -1},
+            {-1, -1, -1}
+        };
+
+        for (int y = 1; y < height - 1; y++) {
+            for (int x = 1; x < width - 1; x++) {
+                int laplacian = 0;
+
+                // Apply kernel to grayscale intensity 
+                for (int ky = -1; ky <= 1; ky++) {
+                    for (int kx = -1; kx <= 1; kx++) {
+                        int px = (y + ky) * width + (x + kx);
+                        uint8_t r = temp[px * 4];
+                        uint8_t g = temp[px * 4 + 1];
+                        uint8_t b = temp[px * 4 + 2];
+                        uint8_t gray = static_cast<uint8_t>((r + g + b) / 3);
+
+                        laplacian += gray * kernel[ky + 1][kx + 1];
+                    }
+                }
+
+                uint8_t edge = clamp(std::abs(laplacian));
+
+                int idx = (y * width + x) * 4;
+                data[idx] = edge; // R
+                data[idx + 1] = edge; // G
+                data[idx + 2] = edge; // B
+                data[idx + 3] = 255; // A
+            }
+        }
+
+        delete[] temp; // Clean up temporary buffer
+    }
+
+    void edge_laplacian_of_gaussian(uint8_t* data, int width, int height, double sigma, int kernelSize) {
+        // Step 1: convert to grayscale 
+        monochrome_itu(data, width, height);
+        
+        // Step 2: apply Gaussian blur 
+        gaussian_blur(data, width, height, sigma, kernelSize);
+
+        // Step 3: apply Laplacian filter
+        laplacian_filter(data, width, height);
+    }
 }
