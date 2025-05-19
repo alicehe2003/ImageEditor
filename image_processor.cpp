@@ -126,4 +126,58 @@ extern "C" {
             }
         }
     }
+
+    // Clamp utility 
+    inline uint8_t clamp(int value) {
+        return static_cast<uint8_t>(std::max(0, std::min(value, 255)));
+    }
+
+    void edge_sobel(uint8_t* data, int width, int height) {
+        int size = width * height * 4; 
+        uint8_t* temp = new uint8_t[size]; 
+        std::copy(data, data + size, temp);
+
+        // Sobel kernels
+        const int Gx[3][3] = {
+            {-1, 0, 1},
+            {-2, 0, 2},
+            {-1, 0, 1}
+        };
+        const int Gy[3][3] = {
+            {1, 2, 1},
+            {0, 0, 0},
+            {-1, -2, -1}
+        };
+
+        for (int y = 1; y < height - 1; y++) {
+            for (int x = 1; x < width - 1; x++) {
+                int gx = 0, gy = 0;
+
+                // Apply kernels to grayscale intensity 
+                for (int ky = -1; ky <= 1; ky++) {
+                    for (int kx = -1; kx <= 1; kx++) {
+                        int px = (y + ky) * width + (x + kx);
+                        uint8_t r = temp[px * 4];
+                        uint8_t g = temp[px * 4 + 1];
+                        uint8_t b = temp[px * 4 + 2];
+                        uint8_t gray = static_cast<uint8_t>((r + g + b) / 3);
+
+                        gx += gray * Gx[ky + 1][kx + 1];
+                        gy += gray * Gy[ky + 1][kx + 1];
+                    }
+                }
+
+                int magnitude = static_cast<int>(std::sqrt(gx * gx + gy * gy));
+                uint8_t edge = clamp(magnitude);
+
+                int idx = (y * width + x) * 4;
+                data[idx] = edge; // R
+                data[idx + 1] = edge; // G
+                data[idx + 2] = edge; // B
+                data[idx + 3] = 255; // A
+            }
+        }
+
+        delete[] temp; // Clean up temporary buffer
+    }
 }

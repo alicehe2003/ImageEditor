@@ -111,4 +111,26 @@ Module().then((mod) => {
     // Free WASM memory
     wasmModule._free(dataPtr);
   }); 
+
+  // Attach event listener for the sobel button
+  document.getElementById("edge_sobel").addEventListener("click", () => {
+    if (!imageData) return;
+
+    // Allocate WASM memory 
+    const len = imageData.data.length;
+    const dataPtr = wasmModule._malloc(len);
+    const heap = new Uint8Array(wasmModule.HEAPU8.buffer, dataPtr, len);
+    heap.set(imageData.data);
+
+    // Call Sobel function in WASM 
+    wasmModule.ccall("edge_sobel", null, ["number", "number", "number"],
+      [dataPtr, imageData.width, imageData.height]);
+
+    // Copy the result back into JS memory and render 
+    imageData.data.set(heap);
+    ctx.putImageData(imageData, 0, 0);
+
+    // Free WASM memory
+    wasmModule._free(dataPtr);
+  });
 });

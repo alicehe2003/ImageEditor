@@ -10,7 +10,7 @@ Run the following in the command line:
   -o image_processor.js \
   -s MODULARIZE=1 \
   -s 'EXPORT_NAME="Module"' \
-  -s EXPORTED_FUNCTIONS='["_monochrome_average", "_monochrome_luminosity", "_monochrome_lightness", "_monochrome_itu", "_gaussian_blur", "_malloc", "_free"]' \
+  -s EXPORTED_FUNCTIONS='["_monochrome_average", "_monochrome_luminosity", "_monochrome_lightness", "_monochrome_itu", "_gaussian_blur", "_edge_sobel", "_malloc", "_free"]' \
   -s EXPORTED_RUNTIME_METHODS='["ccall", "cwrap", "HEAPU8"]' \
   -s ALLOW_MEMORY_GROWTH=1 \
   -O2` 
@@ -59,7 +59,18 @@ Gaussian blur uses the Gaussian function to soften an image by smoothing pixel v
 
 # Additional functionalities and TODOs 
 
-## Outlining 
+## Edge detection 
+
+The Sobel method is a gradient-based edge detection method that computes gradient magnitudes in both x and y directions using 3x3 convolution kernels, good for emphasizing edges and reducing noise. 
+
+The Laplacian of Gaussian method is a second derivative-based method that applies the Gaussian blue, then the Laplacian operator to detect edges at points of rapid intensity change. 
+
+The Canny edge detector is the standard for many applications. 
+1. Apply Gaussian blur (noise reduction). 
+2. Compute gradients (Sobel). 
+3. Non-maximum suppression (thin edges). 
+4. Hysteresis thresholding (track strong/weak edges). 
+This method is accurate, clean, and efficient. 
 
 ## Image compression 
 
@@ -86,5 +97,12 @@ Gaussian blur uses the Gaussian function to soften an image by smoothing pixel v
 - Check Figma 
 - Design using Figma 
 - Open CV library 
+
+Links to consider 
+
+Upscaling image by converting from raster to vector 
+https://en.wikipedia.org/wiki/Image_tracing 
+
+
 
 # Known bugs
