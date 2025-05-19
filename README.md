@@ -57,13 +57,15 @@ Gaussian blur uses the Gaussian function to soften an image by smoothing pixel v
 - The kernel size determines how many pixels are sampled around each pixel. A larger kernel can capture more of the Gaussian curve, producing a better approximation of the blur. 
 - The standard deviation (sigma) controls the strength of the blur. A larger sigma spreads out the weights more, causing a smoother and wider blur. 
 
-# Additional functionalities and TODOs 
-
 ## Edge detection 
 
 The Sobel method is a gradient-based edge detection method that computes gradient magnitudes in both x and y directions using 3x3 convolution kernels, good for emphasizing edges and reducing noise. 
 
 The Laplacian of Gaussian (LoG) method is a second derivative-based method that applies the Gaussian blur, then the Laplacian operator to detect edges at points of rapid intensity change. 
+
+# Additional functionalities and TODOs 
+
+## Edge detection 
 
 The Canny edge detector is the standard for many applications. 
 1. Apply Gaussian blur (noise reduction). 
