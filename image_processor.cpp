@@ -54,5 +54,7 @@ extern "C" {
             uint8_t gray = static_cast<uint8_t>(0.2126 * r + 0.7152 * g + 0.0722 * b);
             data[i] = data[i + 1] = data[i + 2] = gray;
         }
-    }
+    } 
+
+    
 }

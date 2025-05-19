@@ -54,7 +54,17 @@ Implement various types, including the average method, the luminosity method, th
 
 # Additional functionalities - TODO
 
+## Blurring 
 
+Gaussian blur uses the Gaussian function to soften an image by smoothing pixel values. It is used to reduce noise, reduce details, and to creata a smooth effect. 
+- The kernel size determines how many pixels are sampled around each pixel. A larger kernel can capture more of the Gaussian curve, producing a better approximation of the blur. 
+- The standard deviation (sigma) controls the strength of the blur. A larger sigma spreads out the weights more, causing a smoother and wider blue. 
+
+## Outlining 
+
+## Image compression 
+
+## Image decompression 
 
 
 
