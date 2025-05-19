@@ -1,5 +1,7 @@
 # Image Editor 
 
+Emscripten compiles C++ functions into WASM, which is then called by JS. 
+
 ### Emscripten 
 
 Emscripten is an open-source compiler toolchain that allows you to compile C and C++ code into WASM, so it can run effectively in web browser. 
@@ -74,6 +76,12 @@ The Canny edge detector is the standard for many applications.
 4. Hysteresis thresholding (track strong/weak edges). 
 This method is accurate, clean, and efficient. 
 
+## Colour fill (paint bucket) 
+
+Users are able to select a desired colour (RGBA, hex, or colour wheel), input an error threshold (between 0 and 1), and click the image to fill the area with the input threshold. 
+
+The error bound e between 0 and 1 indicates how "different" a pixel to be filled can be compared to the colour of the pixel selected. Let R be the reference (selected) pixel, and let T be the pixel that we are trying to determine if it should be filled or not. For T to be filled, it must satisfy ...TODO 
+
 ## Image compression 
 
 ## Image decompression 
@@ -86,7 +94,6 @@ This method is accurate, clean, and efficient.
 
 ## Image blending 
 
-## Fill an area with the same colour 
 
 ## TODO 
 
@@ -105,6 +112,8 @@ Links to consider
 Upscaling image by converting from raster to vector 
 https://en.wikipedia.org/wiki/Image_tracing 
 
+https://www.figma.com/blog/webassembly-cut-figmas-load-time-by-3x/ 
+https://www.figma.com/blog/speeding-up-build-times/ 
 
 
 # Known bugs
