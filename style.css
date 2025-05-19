@@ -1,6 +1,6 @@
 /* TEMPORARY STYLING */ 
 
-.monochrome_options, .blur_options, .edge_options {
+.monochrome_options, .blur_options, .edge_options, .bucket_tool {
     border: solid 1px black; 
     margin: 10px;
     padding: 10px; 
