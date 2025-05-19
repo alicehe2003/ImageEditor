@@ -17,6 +17,18 @@
     <button id="monochrome_itu">ITU-R BT.709 Method</button>
   </div>
 
+  <div class="blur_options">
+    <h3>Gaussian Blur</h3>
+
+    <label for="sigma">Sigma (0–50):</label>
+    <input type="number" id="sigma" min="0" max="50" value="2">
+
+    <label for="kernel">Kernel Size (odd, 1–50):</label>
+    <input type="number" id="kernel" min="1" max="50" step="1" value="5">
+
+    <button id="blur_gaussian">Gaussian Blur</button>
+  </div>
+
   <canvas id="canvas"></canvas>
 
   <script src="image_processor.js"></script>

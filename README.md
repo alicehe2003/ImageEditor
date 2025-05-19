@@ -10,7 +10,7 @@ Run the following in the command line:
   -o image_processor.js \
   -s MODULARIZE=1 \
   -s 'EXPORT_NAME="Module"' \
-  -s EXPORTED_FUNCTIONS='["_monochrome_average", "_monochrome_luminosity", "_monochrome_lightness", "_monochrome_itu", "_malloc", "_free"]' \
+  -s EXPORTED_FUNCTIONS='["_monochrome_average", "_monochrome_luminosity", "_monochrome_lightness", "_monochrome_itu", "_gaussian_blur", "_malloc", "_free"]' \
   -s EXPORTED_RUNTIME_METHODS='["ccall", "cwrap", "HEAPU8"]' \
   -s ALLOW_MEMORY_GROWTH=1 \
   -O2` 
@@ -52,13 +52,13 @@ Implement various types, including the average method, the luminosity method, th
 - The lightness method keeps the contrast between the brightest and darkest parts, but ignores mid-tone details. `gray = (max(R,G,B) + min(R, G, B)) / 2`
 - The ITU-R BT.709 reflects the modern expectations for grayscale conversion. `gray = 0.2126 * R + 0.7152 * G + 0.0722 * B`
 
-# Additional functionalities - TODO
-
 ## Blurring 
 
 Gaussian blur uses the Gaussian function to soften an image by smoothing pixel values. It is used to reduce noise, reduce details, and to creata a smooth effect. 
 - The kernel size determines how many pixels are sampled around each pixel. A larger kernel can capture more of the Gaussian curve, producing a better approximation of the blur. 
-- The standard deviation (sigma) controls the strength of the blur. A larger sigma spreads out the weights more, causing a smoother and wider blue. 
+- The standard deviation (sigma) controls the strength of the blur. A larger sigma spreads out the weights more, causing a smoother and wider blur. 
+
+# Additional functionalities and TODOs 
 
 ## Outlining 
 
@@ -66,7 +66,16 @@ Gaussian blur uses the Gaussian function to soften an image by smoothing pixel v
 
 ## Image decompression 
 
+## Undo 
 
+## Redo 
+
+## Revert to original image 
+
+## TODO 
+
+- Explain the sigma and kernel for Gaussian Blur 
+- Update README with demos of each filter 
 
 
 # Known bugs

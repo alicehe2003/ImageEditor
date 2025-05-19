@@ -31,7 +31,7 @@ Module().then((mod) => {
     img.src = URL.createObjectURL(file);
   });
 
-  // Attach event listeners for each button 
+  // Attach event listeners for each monochrome button 
   document.getElementById("monochrome_average")
     .addEventListener("click", () => applyMonochromeFilter("monochrome_average"));
 
@@ -74,5 +74,41 @@ Module().then((mod) => {
     // Free WASM memory
     wasmModule._free(dataPtr);
   }
-  
+
+  // Attach event listener for the gaussian blur button
+  document.getElementById("blur_gaussian").addEventListener("click", () => {
+    if (!imageData) return;
+
+    // Get sigma and kernel size values from the input fields 
+    const sigma = parseFloat(document.getElementById("sigma").value);
+    const kernelSize = parseInt(document.getElementById("kernel").value);
+
+    // Validate ranges 
+    if (isNaN(sigma) || sigma < 0 || sigma > 50) {
+      alert("Sigma must be between 0 and 50");
+      return;
+    }
+
+    if (isNaN(kernelSize) || kernelSize < 1 || kernelSize > 50 || kernelSize % 2 === 0) {
+      alert("Kernel size must an odd number be between 1 and 50");
+      return;
+    }
+
+    // Allocate WASM memory 
+    const len = imageData.data.length;
+    const dataPtr = wasmModule._malloc(len);
+    const heap = new Uint8Array(wasmModule.HEAPU8.buffer, dataPtr, len);
+    heap.set(imageData.data);
+
+    // Call Gaussian blur function in WASM 
+    wasmModule.ccall("gaussian_blur", null, ["number", "number", "number", "number", "number"],
+      [dataPtr, imageData.width, imageData.height, sigma, kernelSize]);
+
+    // Copy the result back into JS memory and render 
+    imageData.data.set(heap);
+    ctx.putImageData(imageData, 0, 0);
+
+    // Free WASM memory
+    wasmModule._free(dataPtr);
+  }); 
 });

@@ -1,4 +1,6 @@
 #include <cstdint>
+#include <cmath>
+#include <vector>
 #include <algorithm>
 
 extern "C" {
@@ -56,5 +58,72 @@ extern "C" {
         }
     } 
 
-    
+    void gaussian_blur(uint8_t* data, int width, int height, double sigma, int kernelSize) {
+        // Ensure kernelSize is odd for centering 
+        if (kernelSize % 2 == 0) kernelSize++; 
+
+        int halfKernel = kernelSize / 2;
+
+        // Create Gaussian kernel
+        std::vector<double> kernel(kernelSize); 
+        double sum = 0.0;
+
+        for (int i = 0; i < kernelSize; i++) {
+            int x = i - halfKernel;
+            kernel[i] = std::exp(-(x * x) / (2 * sigma * sigma));
+            sum += kernel[i];
+        } 
+
+        // Normalize kernel 
+        for (double& k : kernel) k /= sum;
+
+        // Create temporary buffer for the blurred image 
+        std::vector<uint8_t> temp(width * height * 4);
+
+        // Horizontal blur 
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                double r = 0, g = 0, b = 0, a = 0; 
+
+                for (int k = -halfKernel; k <= halfKernel; k++) {
+                    int sampleX = std::clamp(x + k, 0, width - 1);
+                    int idx = (y * width + sampleX) * 4; 
+
+                    r += data[idx] * kernel[k + halfKernel];
+                    g += data[idx + 1] * kernel[k + halfKernel];
+                    b += data[idx + 2] * kernel[k + halfKernel];
+                    a += data[idx + 3] * kernel[k + halfKernel];
+                }
+
+                int dstIdx = (y * width + x) * 4;
+                temp[dstIdx] = static_cast<uint8_t>(r);
+                temp[dstIdx + 1] = static_cast<uint8_t>(g);
+                temp[dstIdx + 2] = static_cast<uint8_t>(b);
+                temp[dstIdx + 3] = static_cast<uint8_t>(a);
+            }
+        }
+
+        // Vertical blur
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                double r = 0, g = 0, b = 0, a = 0;
+
+                for (int k = -halfKernel; k <= halfKernel; k++) {
+                    int sampleY = std::clamp(y + k, 0, height - 1);
+                    int idx = (sampleY * width + x) * 4;
+
+                    r += temp[idx] * kernel[k + halfKernel];
+                    g += temp[idx + 1] * kernel[k + halfKernel];
+                    b += temp[idx + 2] * kernel[k + halfKernel];
+                    a += temp[idx + 3] * kernel[k + halfKernel];
+                }
+
+                int dstIdx = (y * width + x) * 4;
+                data[dstIdx] = static_cast<uint8_t>(r);
+                data[dstIdx + 1] = static_cast<uint8_t>(g);
+                data[dstIdx + 2] = static_cast<uint8_t>(b);
+                data[dstIdx + 3] = static_cast<uint8_t>(a);
+            }
+        }
+    }
 }
