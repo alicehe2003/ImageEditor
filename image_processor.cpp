@@ -20,7 +20,7 @@ extern "C" {
             uint8_t r = data[i];
             uint8_t g = data[i + 1];
             uint8_t b = data[i + 2];
-            uint8_t gray = static_cast<uint8_t>(r + g + b) / 3;
+            uint8_t gray = static_cast<uint8_t>((r + g + b) / 3);
             data[i] = data[i + 1] = data[i + 2] = gray;
         }
     }
@@ -42,7 +42,7 @@ extern "C" {
             uint8_t r = data[i];
             uint8_t g = data[i + 1];
             uint8_t b = data[i + 2];
-            uint8_t gray = static_cast<uint8_t>(std::max({r, g, b}) + std::min({r, g, b})) / 2;
+            uint8_t gray = static_cast<uint8_t>(std::max({r, g, b}) + std::min({r, g, b}) / 2);
             data[i] = data[i + 1] = data[i + 2] = gray;
         }
     }

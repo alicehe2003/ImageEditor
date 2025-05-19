@@ -21,7 +21,6 @@ It compiles the C++ file and outputs `image_processor.wasm` (the compiled WASM) 
 
 `extern "C"` is a directive in C++ that tells the compiler to use C-style naming for functions so they can be called from other languages. C++ mangles function names (adds extra info like parameter types) to support function overloading. This makes the compiler names unreadable or inconsistent for other languages. 
 
-
 ### RGBA 
 
 RGB are the colours red, green, and blue respectively, each in the range 0 - 255. Alpha is the opacity/transparency, also in the range 0 - 255. 
@@ -72,7 +71,9 @@ Gaussian blur uses the Gaussian function to soften an image by smoothing pixel v
 
 ## Revert to original image 
 
-## 
+## Image blending 
+
+## Fill an area with the same colour 
 
 ## TODO 
 
