@@ -49,6 +49,18 @@ extern "C" {
         layers[id] = layer;
     }
 
+    void clear_layers() {
+        for (auto& [id, layer] : layers) {
+            for (auto& row : layer->pixels) {
+                for (Pixel* p : row) {
+                    delete p;
+                }
+            }
+            delete layer;
+        }
+        layers.clear();
+    }    
+
     void monochrome_average(uint8_t* data, int layer_id) {
         Layer* layer = layers[layer_id]; 
         if (!layer) return; // Layer not found
@@ -119,7 +131,7 @@ extern "C" {
                 uint8_t a = p->a; // preserve the alpha channel
 
                 // Compute grayscale value
-                uint8_t gray = static_cast<uint8_t>(0.299 * r + 0.578 * g + 0.114 * b);
+                uint8_t gray = static_cast<uint8_t>(0.299 * r + 0.587 * g + 0.114 * b);
 
                 // Write grayscale value to R, G, B, keep original A 
                 data[index] = gray; // R
@@ -229,10 +241,9 @@ extern "C" {
         }
     } 
 
-    void gaussian_blur(uint8_t* data, int width, int height, double sigma, int kernelSize) {
+    void gaussian_blur(uint8_t* data, int layer_id, double sigma, int kernelSize) {
         // Ensure kernelSize is odd for centering 
         if (kernelSize % 2 == 0) kernelSize++; 
-
         int halfKernel = kernelSize / 2;
 
         // Create Gaussian kernel
@@ -248,6 +259,13 @@ extern "C" {
         // Normalize kernel 
         for (double& k : kernel) k /= sum;
 
+        // Get layer 
+        Layer* layer = layers[layer_id];
+        if (!layer) return; // Layer not found
+
+        int width = layer->pixels[0].size();
+        int height = layer->pixels.size();
+
         // Create temporary buffer for the blurred image 
         std::vector<uint8_t> temp(width * height * 4);
 
@@ -260,10 +278,12 @@ extern "C" {
                     int sampleX = std::clamp(x + k, 0, width - 1);
                     int idx = (y * width + sampleX) * 4; 
 
-                    r += data[idx] * kernel[k + halfKernel];
-                    g += data[idx + 1] * kernel[k + halfKernel];
-                    b += data[idx + 2] * kernel[k + halfKernel];
-                    a += data[idx + 3] * kernel[k + halfKernel];
+                    Pixel* p = layer->pixels[y][sampleX];
+
+                    r += p->r * kernel[k + halfKernel];
+                    g += p->g * kernel[k + halfKernel];
+                    b += p->b * kernel[k + halfKernel];
+                    a += p->a * kernel[k + halfKernel];
                 }
 
                 int dstIdx = (y * width + x) * 4;
@@ -290,10 +310,19 @@ extern "C" {
                 }
 
                 int dstIdx = (y * width + x) * 4;
+
+                // Populate the original data with the blurred values
                 data[dstIdx] = static_cast<uint8_t>(r);
                 data[dstIdx + 1] = static_cast<uint8_t>(g);
                 data[dstIdx + 2] = static_cast<uint8_t>(b);
                 data[dstIdx + 3] = static_cast<uint8_t>(a);
+
+                // Update the pixel in the layer
+                Pixel* p = layer->pixels[y][x];
+                p->r = static_cast<uint8_t>(r);
+                p->g = static_cast<uint8_t>(g);
+                p->b = static_cast<uint8_t>(b);
+                p->a = static_cast<uint8_t>(a);
             }
         }
     }
@@ -400,7 +429,8 @@ extern "C" {
         monochrome_itu(data, 0);
         
         // Step 2: apply Gaussian blur 
-        gaussian_blur(data, width, height, sigma, kernelSize);
+        // TODO: change layer id
+        gaussian_blur(data, 0, sigma, kernelSize);
 
         // Step 3: apply Laplacian filter
         laplacian_filter(data, width, height);

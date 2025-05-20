@@ -116,11 +116,10 @@ Module().then((mod) => {
     const len = imageData.data.length;
     const dataPtr = wasmModule._malloc(len);
     const heap = new Uint8Array(wasmModule.HEAPU8.buffer, dataPtr, len);
-    heap.set(imageData.data);
 
     // Call Gaussian blur function in WASM 
-    wasmModule.ccall("gaussian_blur", null, ["number", "number", "number", "number", "number"],
-      [dataPtr, imageData.width, imageData.height, sigma, kernelSize]);
+    wasmModule.ccall("gaussian_blur", null, ["number", "number", "number", "number"],
+      [dataPtr, 0, sigma, kernelSize]);
 
     // Copy the result back into JS memory and render 
     imageData.data.set(heap);
