@@ -82,43 +82,150 @@ extern "C" {
                 data[index + 2] = gray; // B
                 data[index + 3] = a; // A
 
+                // Write greyscale value to pixel 
+                p->r = gray;
+                p->g = gray;
+                p->b = gray;
+                p->a = a;
+
                 // Move to the next pixel
                 index += 4; 
             }
         }
-
     }
 
-    void monochrome_luminosity(uint8_t* data, int width, int height) {
-        int size = width * height * 4;
-        for (int i = 0; i < size; i += 4) {
-            uint8_t r = data[i];
-            uint8_t g = data[i + 1];
-            uint8_t b = data[i + 2];
-            uint8_t gray = static_cast<uint8_t>(0.299 * r + 0.578 * g + 0.114 * b);
-            data[i] = data[i + 1] = data[i + 2] = gray;
+    void monochrome_luminosity(uint8_t* data, int layer_id) {
+        Layer* layer = layers[layer_id]; 
+        if (!layer) return; // Layer not found
+
+        int width = layer->pixels[0].size();
+        int height = layer->pixels.size();
+        
+        int index = 0; 
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                // Get the Pixel from layer's pixel grid 
+                Pixel* p = layer->pixels[y][x]; 
+
+                // Handle missing pixel 
+                if (!p) {
+                    index += 4; 
+                    continue;
+                }
+
+                uint8_t r = p->r;
+                uint8_t g = p->g;
+                uint8_t b = p->b;
+                uint8_t a = p->a; // preserve the alpha channel
+
+                // Compute grayscale value
+                uint8_t gray = static_cast<uint8_t>(0.299 * r + 0.578 * g + 0.114 * b);
+
+                // Write grayscale value to R, G, B, keep original A 
+                data[index] = gray; // R
+                data[index + 1] = gray; // G
+                data[index + 2] = gray; // B
+                data[index + 3] = a; // A
+
+                // Write greyscale value to pixel
+                p->r = gray;
+                p->g = gray;
+                p->b = gray;
+                p->a = a;
+
+                // Move to the next pixel
+                index += 4; 
+            }
         }
     }
 
-    void monochrome_lightness(uint8_t* data, int width, int height) {
-        int size = width * height * 4;
-        for (int i = 0; i < size; i += 4) {
-            uint8_t r = data[i];
-            uint8_t g = data[i + 1];
-            uint8_t b = data[i + 2];
-            uint8_t gray = static_cast<uint8_t>(std::max({r, g, b}) + std::min({r, g, b}) / 2);
-            data[i] = data[i + 1] = data[i + 2] = gray;
+    void monochrome_lightness(uint8_t* data, int layer_id) {
+        Layer* layer = layers[layer_id]; 
+        if (!layer) return; // Layer not found
+
+        int width = layer->pixels[0].size();
+        int height = layer->pixels.size();
+        
+        int index = 0; 
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                // Get the Pixel from layer's pixel grid 
+                Pixel* p = layer->pixels[y][x]; 
+
+                // Handle missing pixel 
+                if (!p) {
+                    index += 4; 
+                    continue;
+                }
+
+                uint8_t r = p->r;
+                uint8_t g = p->g;
+                uint8_t b = p->b;
+                uint8_t a = p->a; // preserve the alpha channel
+
+                // Compute grayscale value
+                uint8_t gray = static_cast<uint8_t>(std::max({r, g, b}) + std::min({r, g, b}) / 2);
+
+                // Write grayscale value to R, G, B, keep original A 
+                data[index] = gray; // R
+                data[index + 1] = gray; // G
+                data[index + 2] = gray; // B
+                data[index + 3] = a; // A
+
+                // Write greyscale value to pixel
+                p->r = gray;
+                p->g = gray;
+                p->b = gray;
+                p->a = a;
+
+                // Move to the next pixel
+                index += 4; 
+            }
         }
     }
 
-    void monochrome_itu(uint8_t* data, int width, int height) {
-        int size = width * height * 4;
-        for (int i = 0; i < size; i += 4) {
-            uint8_t r = data[i];
-            uint8_t g = data[i + 1];
-            uint8_t b = data[i + 2];
-            uint8_t gray = static_cast<uint8_t>(0.2126 * r + 0.7152 * g + 0.0722 * b);
-            data[i] = data[i + 1] = data[i + 2] = gray;
+    void monochrome_itu(uint8_t* data, int layer_id) {
+        Layer* layer = layers[layer_id]; 
+        if (!layer) return; // Layer not found
+
+        int width = layer->pixels[0].size();
+        int height = layer->pixels.size();
+        
+        int index = 0; 
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                // Get the Pixel from layer's pixel grid 
+                Pixel* p = layer->pixels[y][x]; 
+
+                // Handle missing pixel 
+                if (!p) {
+                    index += 4; 
+                    continue;
+                }
+
+                uint8_t r = p->r;
+                uint8_t g = p->g;
+                uint8_t b = p->b;
+                uint8_t a = p->a; // preserve the alpha channel
+
+                // Compute grayscale value
+                uint8_t gray = static_cast<uint8_t>(0.2126 * r + 0.7152 * g + 0.0722 * b);
+
+                // Write grayscale value to R, G, B, keep original A 
+                data[index] = gray; // R
+                data[index + 1] = gray; // G
+                data[index + 2] = gray; // B
+                data[index + 3] = a; // A
+
+                // Write greyscale value to pixel
+                p->r = gray;
+                p->g = gray;
+                p->b = gray;
+                p->a = a;
+
+                // Move to the next pixel
+                index += 4; 
+            }
         }
     } 
 
@@ -289,7 +396,8 @@ extern "C" {
 
     void edge_laplacian_of_gaussian(uint8_t* data, int width, int height, double sigma, int kernelSize) {
         // Step 1: convert to grayscale 
-        monochrome_itu(data, width, height);
+        // TODO: change layer id 
+        monochrome_itu(data, 0);
         
         // Step 2: apply Gaussian blur 
         gaussian_blur(data, width, height, sigma, kernelSize);

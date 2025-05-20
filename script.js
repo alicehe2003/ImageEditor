@@ -52,30 +52,8 @@ Module().then((mod) => {
   });
 
   // Attach event listeners for each monochrome button 
-
-  document.getElementById("monochrome_average").addEventListener("click", () => {
-    if (!imageData) return;
-  
-    // Allocate WASM memory 
-    const len = imageData.data.length;
-    const dataPtr = wasmModule._malloc(len);
-    
-    // Create a view of the WASM memory where data will be written
-    const heap = new Uint8Array(wasmModule.HEAPU8.buffer, dataPtr, len);
-    
-    // Call the C++ function with the allocated pointer and the layer id (0 for now)
-    wasmModule.ccall("monochrome_average", null, ["number", "number"], [dataPtr, 0]);
-
-    // Copy the processed pixel data back to the JS ImageData object
-    imageData.data.set(heap);
-    ctx.putImageData(imageData, 0, 0);
-    
-    // Free the WASM memory
-    wasmModule._free(dataPtr);
-  }); 
-
-  // document.getElementById("monochrome_average")
-  //   .addEventListener("click", () => applyMonochromeFilter("monochrome_average"));
+  document.getElementById("monochrome_average")
+    .addEventListener("click", () => applyMonochromeFilter("monochrome_average"));
 
   document.getElementById("monochrome_luminosity")
     .addEventListener("click", () => applyMonochromeFilter("monochrome_luminosity"));
@@ -95,19 +73,17 @@ Module().then((mod) => {
     const len = imageData.data.length;
     const dataPtr = wasmModule._malloc(len);
 
-    // Create a JS view into WASM memory starting at dataPtr, and copy 
-    // JS pixel data into WASM memory
+    // Create a JS view into WASM memory starting at dataPtr
     const heap = new Uint8Array(wasmModule.HEAPU8.buffer, dataPtr, len);
-    heap.set(imageData.data);
 
     // Call the WASM function specified by cppFunctionName
     // cppFunctionName is the name of the C++ function (must be exported with 
     // Emscripten via EXPORTED_FUNCTIONS)
     // null is the return type (void)
-    // ["number", "number", "number"] is the type of the arguments
-    // [dataPtr, imageData.width, imageData.height] are the argument values 
-    wasmModule.ccall(cppFunctionName, null, ["number", "number", "number"],
-      [dataPtr, imageData.width, imageData.height]);
+    // ["number", "number"] is the type of the arguments
+    // [dataPtr, 0] are the argument values 
+    wasmModule.ccall(cppFunctionName, null, ["number", "number"],
+      [dataPtr, 0]);
 
     // Copy the processed pixel data back into the canvas
     imageData.data.set(heap);
