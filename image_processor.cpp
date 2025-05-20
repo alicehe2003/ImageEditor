@@ -2,6 +2,11 @@
 #include <cmath>
 #include <vector>
 #include <algorithm>
+#include "layer.h"
+#include <unordered_map>
+
+// Cache of layers 
+std::unordered_map<int, Layer*> layers;
 
 extern "C" {
 
@@ -14,15 +19,74 @@ extern "C" {
      *               pixel_1_R, pixel_1_G, pixel_1_B, pixel_1_A, ...]
      */
 
-    void monochrome_average(uint8_t* data, int width, int height) {
+    void data_to_layer(uint8_t* data, int width, int height, int id) {
+        Layer* layer = new Layer(id);
+        layer->pixels.resize(height, std::vector<Pixel*>(width)); 
+
+        // Current x, y position in the image 
+        int x = 0, y = 0;
+
         int size = width * height * 4;
+
         for (int i = 0; i < size; i += 4) {
             uint8_t r = data[i];
             uint8_t g = data[i + 1];
             uint8_t b = data[i + 2];
-            uint8_t gray = static_cast<uint8_t>((r + g + b) / 3);
-            data[i] = data[i + 1] = data[i + 2] = gray;
+            uint8_t a = data[i + 3];
+
+            // Create a new pixel and assign it to the layer 
+            layer->pixels[y][x] = new Pixel(r, g, b, a);
+
+            // Move to the next pixel 
+            x++;
+            if (x >= width) {
+                x = 0;
+                y++;
+            }
         }
+
+        // Store the layer in the cache
+        layers[id] = layer;
+    }
+
+    void monochrome_average(uint8_t* data, int layer_id) {
+        Layer* layer = layers[layer_id]; 
+        if (!layer) return; // Layer not found
+
+        int width = layer->pixels[0].size();
+        int height = layer->pixels.size();
+        
+        int index = 0; 
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                // Get the Pixel from layer's pixel grid 
+                Pixel* p = layer->pixels[y][x]; 
+
+                // Handle missing pixel 
+                if (!p) {
+                    index += 4; 
+                    continue;
+                }
+
+                uint8_t r = p->r;
+                uint8_t g = p->g;
+                uint8_t b = p->b;
+                uint8_t a = p->a; // preserve the alpha channel
+
+                // Compute the simple average to get the grayscale value
+                uint8_t gray = static_cast<uint8_t>((r + g + b) / 3); 
+
+                // Write grayscale value to R, G, B, keep original A 
+                data[index] = gray; // R
+                data[index + 1] = gray; // G
+                data[index + 2] = gray; // B
+                data[index + 3] = a; // A
+
+                // Move to the next pixel
+                index += 4; 
+            }
+        }
+
     }
 
     void monochrome_luminosity(uint8_t* data, int width, int height) {
@@ -233,4 +297,6 @@ extern "C" {
         // Step 3: apply Laplacian filter
         laplacian_filter(data, width, height);
     }
+
+    
 }

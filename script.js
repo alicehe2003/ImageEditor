@@ -5,6 +5,9 @@ let ctx = canvas.getContext("2d");
 let imageData;
 let wasmModule;
 
+// Image id counter 
+let imageIdCounter = 0; 
+
 Module().then((mod) => {
   wasmModule = mod;
 
@@ -25,15 +28,54 @@ Module().then((mod) => {
       canvas.width = img.width;
       canvas.height = img.height;
       ctx.drawImage(img, 0, 0);
-      // Extracts pizel data from canvas for processing 
-      imageData = ctx.getImageData(0, 0, img.width, img.height);
+      // Extracts pixel data from canvas for processing 
+      imageData = ctx.getImageData(0, 0, img.width, img.height); 
+      const pixelData = imageData.data;
+
+      const len = imageData.data.length;
+      const dataPtr = wasmModule._malloc(len);
+      const heap = new Uint8Array(wasmModule.HEAPU8.buffer, dataPtr, len);
+      heap.set(pixelData);
+
+      // Call the C++ function to process and cache the image
+      wasmModule.ccall("data_to_layer", null, ["number", "number", "number", "number"],
+        [dataPtr, imageData.width, imageData.height, imageIdCounter]);
+
+      // Free WASM memory
+      wasmModule._free(dataPtr);
+
+      console.log("Image with ID " + imageIdCounter + " loaded to C++.");
+
+      imageIdCounter++;
     };
     img.src = URL.createObjectURL(file);
   });
 
   // Attach event listeners for each monochrome button 
-  document.getElementById("monochrome_average")
-    .addEventListener("click", () => applyMonochromeFilter("monochrome_average"));
+
+  document.getElementById("monochrome_average").addEventListener("click", () => {
+    if (!imageData) return;
+  
+    // Allocate WASM memory 
+    const len = imageData.data.length;
+    const dataPtr = wasmModule._malloc(len);
+    
+    // Create a view of the WASM memory where data will be written
+    const heap = new Uint8Array(wasmModule.HEAPU8.buffer, dataPtr, len);
+    
+    // Call the C++ function with the allocated pointer and the layer id (0 for now)
+    wasmModule.ccall("monochrome_average", null, ["number", "number"], [dataPtr, 0]);
+
+    // Copy the processed pixel data back to the JS ImageData object
+    imageData.data.set(heap);
+    ctx.putImageData(imageData, 0, 0);
+    
+    // Free the WASM memory
+    wasmModule._free(dataPtr);
+  }); 
+
+  // document.getElementById("monochrome_average")
+  //   .addEventListener("click", () => applyMonochromeFilter("monochrome_average"));
 
   document.getElementById("monochrome_luminosity")
     .addEventListener("click", () => applyMonochromeFilter("monochrome_luminosity"));
@@ -169,4 +211,7 @@ Module().then((mod) => {
     // Free WASM memory
     wasmModule._free(dataPtr);
   }); 
+
+  // Colour picker 
+
 });
