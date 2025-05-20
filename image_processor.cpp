@@ -164,7 +164,7 @@ extern "C" {
                 uint8_t a = p->a; // preserve the alpha channel
 
                 // Compute grayscale value
-                uint8_t gray = static_cast<uint8_t>(std::max({r, g, b}) + std::min({r, g, b}) / 2);
+                uint8_t gray = static_cast<uint8_t>((std::max({r, g, b}) + std::min({r, g, b})) / 2);
 
                 // Write grayscale value to R, G, B, keep original A 
                 data[index] = gray; // R
