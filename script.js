@@ -137,11 +137,10 @@ Module().then((mod) => {
     const len = imageData.data.length;
     const dataPtr = wasmModule._malloc(len);
     const heap = new Uint8Array(wasmModule.HEAPU8.buffer, dataPtr, len);
-    heap.set(imageData.data);
 
     // Call Sobel function in WASM 
-    wasmModule.ccall("edge_sobel", null, ["number", "number", "number"],
-      [dataPtr, imageData.width, imageData.height]);
+    wasmModule.ccall("edge_sobel", null, ["number", "number"],
+      [dataPtr, 0]);
 
     // Copy the result back into JS memory and render 
     imageData.data.set(heap);

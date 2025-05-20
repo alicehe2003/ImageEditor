@@ -332,11 +332,13 @@ extern "C" {
         return static_cast<uint8_t>(std::max(0, std::min(value, 255)));
     }
 
-    void edge_sobel(uint8_t* data, int width, int height) {
-        int size = width * height * 4; 
-        uint8_t* temp = new uint8_t[size]; 
-        std::copy(data, data + size, temp);
-
+    void edge_sobel(uint8_t* data, int layer_id) {
+        Layer* layer = layers[layer_id];
+        if (!layer) return;
+    
+        int width = layer->pixels[0].size();
+        int height = layer->pixels.size();
+    
         // Sobel kernels
         const int Gx[3][3] = {
             {-1, 0, 1},
@@ -348,38 +350,48 @@ extern "C" {
             {0, 0, 0},
             {-1, -2, -1}
         };
-
+    
+        // First pass: compute magnitudes and find the max value
+        std::vector<int> magnitudes(width * height, 0);
+        int maxMag = 1; // Avoid division by zero
+    
         for (int y = 1; y < height - 1; y++) {
             for (int x = 1; x < width - 1; x++) {
                 int gx = 0, gy = 0;
-
-                // Apply kernels to grayscale intensity 
+    
                 for (int ky = -1; ky <= 1; ky++) {
                     for (int kx = -1; kx <= 1; kx++) {
-                        int px = (y + ky) * width + (x + kx);
-                        uint8_t r = temp[px * 4];
-                        uint8_t g = temp[px * 4 + 1];
-                        uint8_t b = temp[px * 4 + 2];
-                        uint8_t gray = static_cast<uint8_t>((r + g + b) / 3);
-
+                        Pixel* p = layer->pixels[y + ky][x + kx];
+                        uint8_t gray = static_cast<uint8_t>((p->r + p->g + p->b) / 3);
                         gx += gray * Gx[ky + 1][kx + 1];
                         gy += gray * Gy[ky + 1][kx + 1];
                     }
                 }
-
-                int magnitude = static_cast<int>(std::sqrt(gx * gx + gy * gy));
-                uint8_t edge = clamp(magnitude);
-
-                int idx = (y * width + x) * 4;
-                data[idx] = edge; // R
-                data[idx + 1] = edge; // G
-                data[idx + 2] = edge; // B
-                data[idx + 3] = 255; // A
+    
+                int mag = static_cast<int>(std::sqrt(gx * gx + gy * gy));
+                magnitudes[y * width + x] = mag;
+                if (mag > maxMag) maxMag = mag;
             }
         }
-
-        delete[] temp; // Clean up temporary buffer
-    }
+    
+        // Second pass: normalize and write to data and layer
+        for (int y = 1; y < height - 1; y++) {
+            for (int x = 1; x < width - 1; x++) {
+                int mag = magnitudes[y * width + x];
+                uint8_t edge = static_cast<uint8_t>((mag * 255) / maxMag);
+    
+                int idx = (y * width + x) * 4;
+                data[idx] = edge;
+                data[idx + 1] = edge;
+                data[idx + 2] = edge;
+                data[idx + 3] = 255;
+    
+                Pixel* p = layer->pixels[y][x];
+                p->r = p->g = p->b = edge;
+                p->a = 255;
+            }
+        }
+    }    
 
     void laplacian_filter(uint8_t* data, int width, int height) {
         int size = width * height * 4; 
