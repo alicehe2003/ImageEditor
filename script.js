@@ -175,8 +175,8 @@ Module().then((mod) => {
     heap.set(imageData.data);
 
     // Call Laplacian of Gaussian function in WASM 
-    wasmModule.ccall("edge_laplacian_of_gaussian", null, ["number", "number", "number", "number"],
-      [dataPtr, imageData.width, imageData.height, sigma, kernelSize]);
+    wasmModule.ccall("edge_laplacian_of_gaussian", null, ["number", "number", "number"],
+      [dataPtr, 0, sigma, kernelSize]);
 
     // Copy the result back into JS memory and render 
     imageData.data.set(heap);
@@ -186,6 +186,6 @@ Module().then((mod) => {
     wasmModule._free(dataPtr);
   }); 
 
-  // Colour picker 
+  // Colour picker - TODO
 
 });
