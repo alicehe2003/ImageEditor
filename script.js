@@ -175,7 +175,7 @@ Module().then((mod) => {
     heap.set(imageData.data);
 
     // Call Laplacian of Gaussian function in WASM 
-    wasmModule.ccall("edge_laplacian_of_gaussian", null, ["number", "number", "number"],
+    wasmModule.ccall("edge_laplacian_of_gaussian", null, ["number", "number", "number", "number"],
       [dataPtr, 0, sigma, kernelSize]);
 
     // Copy the result back into JS memory and render 
