@@ -106,6 +106,8 @@ The error bound e between 0 and 1 indicates how "different" a pixel to be filled
 - Check Figma 
 - Design using Figma 
 - Open CV library 
+- Use smart pointers in C++ 
+- Fix bug with shared memory issue 
 
 Links to consider 
 
@@ -117,3 +119,4 @@ https://www.figma.com/blog/speeding-up-build-times/
 
 
 # Known bugs
+
