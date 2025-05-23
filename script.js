@@ -73,9 +73,6 @@ Module().then((mod) => {
     const len = imageData.data.length;
     const dataPtr = wasmModule._malloc(len);
 
-    // Create a JS view into WASM memory starting at dataPtr
-    const heap = new Uint8Array(wasmModule.HEAPU8.buffer, dataPtr, len);
-
     // Call the WASM function specified by cppFunctionName
     // cppFunctionName is the name of the C++ function (must be exported with 
     // Emscripten via EXPORTED_FUNCTIONS)
@@ -85,6 +82,8 @@ Module().then((mod) => {
     wasmModule.ccall(cppFunctionName, null, ["number", "number"],
       [dataPtr, 0]);
 
+    // Create a JS view into WASM memory starting at dataPtr
+    const heap = new Uint8Array(wasmModule.HEAPU8.buffer, dataPtr, len);
     // Copy the processed pixel data back into the canvas
     imageData.data.set(heap);
     ctx.putImageData(imageData, 0, 0);
@@ -115,11 +114,12 @@ Module().then((mod) => {
     // Allocate WASM memory 
     const len = imageData.data.length;
     const dataPtr = wasmModule._malloc(len);
-    const heap = new Uint8Array(wasmModule.HEAPU8.buffer, dataPtr, len);
 
     // Call Gaussian blur function in WASM 
     wasmModule.ccall("gaussian_blur", null, ["number", "number", "number", "number"],
       [dataPtr, 0, sigma, kernelSize]);
+
+    const heap = new Uint8Array(wasmModule.HEAPU8.buffer, dataPtr, len);
 
     // Copy the result back into JS memory and render 
     imageData.data.set(heap);
@@ -136,11 +136,12 @@ Module().then((mod) => {
     // Allocate WASM memory 
     const len = imageData.data.length;
     const dataPtr = wasmModule._malloc(len);
-    const heap = new Uint8Array(wasmModule.HEAPU8.buffer, dataPtr, len);
 
     // Call Sobel function in WASM 
     wasmModule.ccall("edge_sobel", null, ["number", "number"],
       [dataPtr, 0]);
+
+    const heap = new Uint8Array(wasmModule.HEAPU8.buffer, dataPtr, len);
 
     // Copy the result back into JS memory and render 
     imageData.data.set(heap);
@@ -171,12 +172,12 @@ Module().then((mod) => {
     // Allocate WASM memory 
     const len = imageData.data.length;
     const dataPtr = wasmModule._malloc(len);
-    const heap = new Uint8Array(wasmModule.HEAPU8.buffer, dataPtr, len);
-    heap.set(imageData.data);
 
     // Call Laplacian of Gaussian function in WASM 
     wasmModule.ccall("edge_laplacian_of_gaussian", null, ["number", "number", "number", "number"],
       [dataPtr, 0, sigma, kernelSize]);
+
+    const heap = new Uint8Array(wasmModule.HEAPU8.buffer, dataPtr, len);
 
     // Copy the result back into JS memory and render 
     imageData.data.set(heap);
