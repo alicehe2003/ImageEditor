@@ -77,14 +77,21 @@ extern "C" {
      * Order size is the number of layers in the order array.
      */
     void merge_layers(uint8_t* output, int width, int height, int* order, int orderSize) {
-        // Initialize all output pixels to transparent black
-        for (int y = 0; y < height; ++y)
+        std::unordered_set<std::pair<int, int>, PositionHash> pixelPositions;
+        
+        // Initialize output to transparent black
+        for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
                 int idx = (y * width + x) * 4;
                 output[idx] = output[idx + 1] = output[idx + 2] = output[idx + 3] = 0;
+
+                // Init pixel positions
+                pixelPositions.insert({x, y});
             }
+        } 
     
-        for (int i = 0; i < orderSize; ++i) {
+        // Iterate from top layer down to bottom layer
+        for (int i = orderSize - 1; i >= 0; --i) {
             int id = order[i];
             Layer* layer = layers[id];
             if (!layer) continue;
@@ -94,29 +101,37 @@ extern "C" {
     
             for (int y = 0; y < h; ++y) {
                 for (int x = 0; x < w; ++x) {
+                    // All pixels fully set, no more blending needed
+                    if (pixelPositions.empty()) return;  
+
+                    // If pixel position is not in pixelPositions set, skip it
+                    if (pixelPositions.find({x, y}) == pixelPositions.end()) continue;
+
                     Pixel* p = layer->pixels[y][x];
                     if (!p) continue;
-    
                     if (x >= width || y >= height) continue;
     
                     int idx = (y * width + x) * 4;
     
-                    float srcAlpha = p->a / 255.0f;
-                    float dstAlpha = output[idx + 3] / 255.0f;
-                    float outAlpha = srcAlpha + dstAlpha * (1 - srcAlpha);
+                    float dstAlpha = output[idx + 3] / 255.0f;  // existing alpha in output
+                    float srcAlpha = p->a / 255.0f;             // new layer alpha (destination in this case)
     
-                    if (outAlpha == 0) continue; // Avoid divide by zero
+                    float outAlpha = dstAlpha + srcAlpha * (1 - dstAlpha);
+                    if (outAlpha == 0) continue;
     
-                    // Blend RGB using the "over" operator
                     for (int c = 0; c < 3; ++c) {
-                        float srcColor = ((&p->r)[c]) / 255.0f;
-                        float dstColor = output[idx + c] / 255.0f;
-                        float outColor = (srcColor * srcAlpha + dstColor * dstAlpha * (1 - srcAlpha)) / outAlpha;
+                        float dstColor = output[idx + c] / 255.0f;      // existing output color (source)
+                        float srcColor = ((&p->r)[c]) / 255.0f;         // new pixel color (destination)
+                        float outColor = (dstColor * dstAlpha + srcColor * srcAlpha * (1 - dstAlpha)) / outAlpha;
                         output[idx + c] = static_cast<uint8_t>(outColor * 255);
                     }
     
-                    // Update alpha channel
                     output[idx + 3] = static_cast<uint8_t>(outAlpha * 255);
+
+                    // If alpha now fully opaque, remove pixel position from set
+                    if (output[idx + 3] == 255) {
+                        pixelPositions.erase({x, y});
+                    }
                 }
             }
         }
