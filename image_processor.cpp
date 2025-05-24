@@ -495,9 +495,13 @@ extern "C" {
       
     /**
      * Bucket fill algorithm to fill a region with a color.
+     * 
+     * 
      */
-    void bucket_fill(uint8_t* output, int width, int height, int layerId, int x, int y, uint8_t r, uint8_t g, uint8_t b, float a, float error_threshold) {
+    void bucket_fill(uint8_t* output, int width, int height, int* order, int orderSize, int layerId, int x, int y, uint8_t r, uint8_t g, uint8_t b, float a, float error_threshold) {
         // TODO 
         
+
+        merge_layers(output, width, height, order, orderSize); 
     }
 }

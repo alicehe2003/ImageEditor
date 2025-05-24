@@ -325,8 +325,8 @@ Module().then((mod) => {
   
     // Call C++ function 
     wasmModule.ccall("bucket_fill", null, 
-      ["number", "number", "number", "number", "number", "number", "number", "number", "number", "number", "number"],
-      [outputPtr, canvas.width, canvas.height, selectedLayerId, x, y, r, g, b, a, threshold]
+      ["number", "number", "number", "number", "number", "number", "number", "number", "number", "number", "number", "number", "number"],
+      [outputPtr, canvas.width, canvas.height, orderPtr, uploadedLayerOrder.length, selectedLayerId, x, y, r, g, b, a, threshold]
     );
   
     const heap = new Uint8ClampedArray(wasmModule.HEAPU8.buffer, outputPtr, len);
