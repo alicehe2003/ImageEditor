@@ -482,7 +482,6 @@ extern "C" {
         merge_layers(data, width, height, order, orderSize);
     }
 
-
     void edge_laplacian_of_gaussian(uint8_t* data, int width, int height, int* order, int orderSize, int layer_id, double sigma, int kernelSize) {
         // Step 1: convert to grayscale 
         monochrome_itu(data, width, height, order, orderSize, layer_id);
@@ -493,6 +492,12 @@ extern "C" {
         // Step 3: apply Laplacian filter
         laplacian_filter(data, width, height, order, orderSize, layer_id);
     }
-
-    
+      
+    /**
+     * Bucket fill algorithm to fill a region with a color.
+     */
+    void bucket_fill(uint8_t* output, int width, int height, int layerId, int x, int y, uint8_t r, uint8_t g, uint8_t b, float a, float error_threshold) {
+        // TODO 
+        
+    }
 }

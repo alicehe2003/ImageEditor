@@ -287,6 +287,55 @@ Module().then((mod) => {
     wasmModule._free(orderPtr);
   });
 
-  // Colour picker - TODO
+  // Attach event listener for when user clicks on the canvas to use bucket tool 
+  canvas.addEventListener("click", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = Math.floor(e.clientX - rect.left);
+    const y = Math.floor(e.clientY - rect.top);
+    applyBucketFill(x, y);
+  });
+  
+  // Bucket tool 
+  function applyBucketFill(x, y) {
+    // Parse RGBA values from the text field
+    const rgbaStr = document.getElementById("rgba").value;
+    const match = rgbaStr.match(/rgba?\((\d+),\s*(\d+),\s*(\d+),\s*(\d+\.?\d*)\)/);
+    if (!match) {
+      alert("Invalid RGBA format");
+      return;
+    }
+  
+    const r = parseInt(match[1]);
+    const g = parseInt(match[2]);
+    const b = parseInt(match[3]);
+    const a = parseFloat(match[4]);
+
+    // Error threshold for the bucket fill
+    const threshold = parseFloat(document.getElementById("error-threshold").value);
+  
+    const len = canvas.width * canvas.height * 4;
+    const outputPtr = wasmModule._malloc(len);
+    const orderPtr = wasmModule._malloc(uploadedLayerOrder.length * 4);
+  
+    // Copy the layer order into WASM memory
+    const orderHeap = new Int32Array(wasmModule.HEAPU8.buffer, orderPtr, uploadedLayerOrder.length);
+    for (let i = 0; i < uploadedLayerOrder.length; i++) {
+      orderHeap[i] = uploadedLayerOrder[i];
+    }
+  
+    // Call C++ function 
+    wasmModule.ccall("bucket_fill", null, 
+      ["number", "number", "number", "number", "number", "number", "number", "number", "number", "number", "number"],
+      [outputPtr, canvas.width, canvas.height, selectedLayerId, x, y, r, g, b, a, threshold]
+    );
+  
+    const heap = new Uint8ClampedArray(wasmModule.HEAPU8.buffer, outputPtr, len);
+    const processedImage = new ImageData(heap, canvas.width, canvas.height);
+    ctx.putImageData(processedImage, 0, 0);
+  
+    wasmModule._free(outputPtr);
+    wasmModule._free(orderPtr);
+  }
+  
 
 });
