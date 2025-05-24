@@ -8,6 +8,13 @@ let wasmModule;
 // Image id counter 
 let imageIdCounter = 0; 
 
+// Layer order tracking 
+let uploadedLayerOrder = []; 
+
+// Dimensions of the canvas should be max of all images 
+let maxWidth = 0; 
+let maxHeight = 0; 
+
 Module().then((mod) => {
   wasmModule = mod;
 
@@ -17,39 +24,87 @@ Module().then((mod) => {
 
   // Waits for user to choose an image file
   document.getElementById("upload").addEventListener("change", (e) => {
-    // Gets first selected file 
-    const file = e.target.files[0];
-    if (!file) return;
+    const files = e.target.files; 
+    if (!files.length) return;
+  
+    const fileArray = Array.from(files);
+    let loadedImages = 0;
+  
+    fileArray.forEach((file) => {
+      const img = new Image();
+      img.onload = () => {
+        // Track max dimensions
+        maxWidth = Math.max(maxWidth, img.width);
+        maxHeight = Math.max(maxHeight, img.height);
+  
+        // Draw this image onto a temp canvas to extract pixel data
+        // Cannot directly read pixel data from the original image in JS
+        const tempCanvas = document.createElement("canvas");
+        tempCanvas.width = img.width;
+        tempCanvas.height = img.height;
+        const tempCtx = tempCanvas.getContext("2d", { willReadFrequently: true });
+        tempCtx.drawImage(img, 0, 0);
+  
+        const tempImageData = tempCtx.getImageData(0, 0, img.width, img.height);
+        const pixelData = tempImageData.data;
+        const len = pixelData.length;
+        const dataPtr = wasmModule._malloc(len);
+        const heap = new Uint8Array(wasmModule.HEAPU8.buffer, dataPtr, len);
+        heap.set(pixelData);
+  
+        wasmModule.ccall("data_to_layer", null, ["number", "number", "number", "number"],
+          [dataPtr, img.width, img.height, imageIdCounter]);
+        wasmModule._free(dataPtr);
+  
+        addLayerToUI(imageIdCounter, img.src);
+        uploadedLayerOrder.push(imageIdCounter);
+        imageIdCounter++;
+  
+        loadedImages++;
+  
+        // When all images are loaded, render
+        if (loadedImages === fileArray.length) {
+          canvas.width = maxWidth;
+          canvas.height = maxHeight;
+          renderMergedImage(uploadedLayerOrder);
+        }
+      };
+      img.src = URL.createObjectURL(file);
+    });
+  }); 
+  
+  function renderMergedImage(layerOrder) {
+    // Allocate memory for merged image data 
+    const len = canvas.width * canvas.height * 4;
+    const outputPtr = wasmModule._malloc(len);
+    const orderPtr = wasmModule._malloc(layerOrder.length * 4);
+  
+    // Copy the layer order into WASM memory
+    const orderHeap = new Int32Array(wasmModule.HEAPU8.buffer, orderPtr, layerOrder.length);
+    for (let i = 0; i < layerOrder.length; i++) {
+      orderHeap[i] = layerOrder[i];
+    }
+  
+    // Width and height of canvas should be max width and height of all images 
+    wasmModule.ccall("merge_layers", null, ["number", "number", "number", "number", "number"],
+      [outputPtr, canvas.width, canvas.height, orderPtr, layerOrder.length]);
+  
+    const heap = new Uint8ClampedArray(wasmModule.HEAPU8.buffer, outputPtr, len);
+    const mergedImage = new ImageData(heap, canvas.width, canvas.height);
+    ctx.putImageData(mergedImage, 0, 0);
+  
+    wasmModule._free(outputPtr);
+    wasmModule._free(orderPtr);
+  }  
 
-    // Loads image in memory. Once loaded, it resizes the canvas and draws the 
-    // image on the canvas. 
-    const img = new Image();
-    img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx.drawImage(img, 0, 0);
-      // Extracts pixel data from canvas for processing 
-      imageData = ctx.getImageData(0, 0, img.width, img.height); 
-      const pixelData = imageData.data;
-
-      const len = imageData.data.length;
-      const dataPtr = wasmModule._malloc(len);
-      const heap = new Uint8Array(wasmModule.HEAPU8.buffer, dataPtr, len);
-      heap.set(pixelData);
-
-      // Call the C++ function to process and cache the image
-      wasmModule.ccall("data_to_layer", null, ["number", "number", "number", "number"],
-        [dataPtr, imageData.width, imageData.height, imageIdCounter]);
-
-      // Free WASM memory
-      wasmModule._free(dataPtr);
-
-      console.log("Image with ID " + imageIdCounter + " loaded to C++.");
-
-      imageIdCounter++;
-    };
-    img.src = URL.createObjectURL(file);
-  });
+  // UI preview
+  function addLayerToUI(id, src) {
+    const li = document.createElement("li");
+    li.classList.add("layer-item");
+    li.dataset.id = id;
+    li.innerHTML = `<img src="${src}" width="50"><br>Layer ${id}`;
+    document.getElementById("layer-list").appendChild(li);
+  }
 
   // Attach event listeners for each monochrome button 
   document.getElementById("monochrome_average")
@@ -66,36 +121,33 @@ Module().then((mod) => {
 
   // Applies a selected monochrome filter using a C++ function compiled to WASM
   function applyMonochromeFilter(cppFunctionName) {
-    if (!imageData) return;
+    // Allocate memory for merged image data 
+    const len = canvas.width * canvas.height * 4;
+    const outputPtr = wasmModule._malloc(len);
+    const orderPtr = wasmModule._malloc(uploadedLayerOrder.length * 4);
 
-    // Calculate the number of bytes needed for the image data (width * height * 4)
-    // and allocate memory in WASM heap for pixel data
-    const len = imageData.data.length;
-    const dataPtr = wasmModule._malloc(len);
+    // Copy the layer order into WASM memory
+    const orderHeap = new Int32Array(wasmModule.HEAPU8.buffer, orderPtr, uploadedLayerOrder.length);
+    for (let i = 0; i < uploadedLayerOrder.length; i++) {
+      orderHeap[i] = uploadedLayerOrder[i];
+    }
 
-    // Call the WASM function specified by cppFunctionName
-    // cppFunctionName is the name of the C++ function (must be exported with 
-    // Emscripten via EXPORTED_FUNCTIONS)
-    // null is the return type (void)
-    // ["number", "number"] is the type of the arguments
-    // [dataPtr, 0] are the argument values 
-    wasmModule.ccall(cppFunctionName, null, ["number", "number"],
-      [dataPtr, 0]);
+    // Call the WASM function with all required parameters
+    wasmModule.ccall(cppFunctionName, null, ["number", "number", "number", "number", "number", "number"],
+      [outputPtr, canvas.width, canvas.height, orderPtr, uploadedLayerOrder.length, 0]);
 
-    // Create a JS view into WASM memory starting at dataPtr
-    const heap = new Uint8Array(wasmModule.HEAPU8.buffer, dataPtr, len);
-    // Copy the processed pixel data back into the canvas
-    imageData.data.set(heap);
-    ctx.putImageData(imageData, 0, 0);
+    // Get the processed image data and display it
+    const heap = new Uint8ClampedArray(wasmModule.HEAPU8.buffer, outputPtr, len);
+    const processedImage = new ImageData(heap, canvas.width, canvas.height);
+    ctx.putImageData(processedImage, 0, 0);
 
     // Free WASM memory
-    wasmModule._free(dataPtr);
+    wasmModule._free(outputPtr);
+    wasmModule._free(orderPtr);
   }
 
   // Attach event listener for the gaussian blur button
   document.getElementById("blur_gaussian").addEventListener("click", () => {
-    if (!imageData) return;
-
     // Get sigma and kernel size values from the input fields 
     const sigma = parseFloat(document.getElementById("sigma").value);
     const kernelSize = parseInt(document.getElementById("kernel").value);
@@ -111,50 +163,60 @@ Module().then((mod) => {
       return;
     }
 
-    // Allocate WASM memory 
-    const len = imageData.data.length;
-    const dataPtr = wasmModule._malloc(len);
+    // Allocate memory for merged image data 
+    const len = canvas.width * canvas.height * 4;
+    const outputPtr = wasmModule._malloc(len);
+    const orderPtr = wasmModule._malloc(uploadedLayerOrder.length * 4);
 
-    // Call Gaussian blur function in WASM 
-    wasmModule.ccall("gaussian_blur", null, ["number", "number", "number", "number"],
-      [dataPtr, 0, sigma, kernelSize]);
+    // Copy the layer order into WASM memory
+    const orderHeap = new Int32Array(wasmModule.HEAPU8.buffer, orderPtr, uploadedLayerOrder.length);
+    for (let i = 0; i < uploadedLayerOrder.length; i++) {
+      orderHeap[i] = uploadedLayerOrder[i];
+    }
 
-    const heap = new Uint8Array(wasmModule.HEAPU8.buffer, dataPtr, len);
+    // Call Gaussian blur function in WASM - apply to layer 0 (first uploaded layer)
+    wasmModule.ccall("gaussian_blur", null, ["number", "number", "number", "number", "number", "number", "number", "number"],
+      [outputPtr, canvas.width, canvas.height, orderPtr, uploadedLayerOrder.length, 0, sigma, kernelSize]);
 
-    // Copy the result back into JS memory and render 
-    imageData.data.set(heap);
-    ctx.putImageData(imageData, 0, 0);
+    // Get the processed image data and display it
+    const heap = new Uint8ClampedArray(wasmModule.HEAPU8.buffer, outputPtr, len);
+    const processedImage = new ImageData(heap, canvas.width, canvas.height);
+    ctx.putImageData(processedImage, 0, 0);
 
     // Free WASM memory
-    wasmModule._free(dataPtr);
-  }); 
+    wasmModule._free(outputPtr);
+    wasmModule._free(orderPtr);
+  });
 
   // Attach event listener for the sobel button
   document.getElementById("edge_sobel").addEventListener("click", () => {
-    if (!imageData) return;
+    // Allocate memory for merged image data 
+    const len = canvas.width * canvas.height * 4;
+    const outputPtr = wasmModule._malloc(len);
+    const orderPtr = wasmModule._malloc(uploadedLayerOrder.length * 4);
 
-    // Allocate WASM memory 
-    const len = imageData.data.length;
-    const dataPtr = wasmModule._malloc(len);
+    // Copy the layer order into WASM memory
+    const orderHeap = new Int32Array(wasmModule.HEAPU8.buffer, orderPtr, uploadedLayerOrder.length);
+    for (let i = 0; i < uploadedLayerOrder.length; i++) {
+      orderHeap[i] = uploadedLayerOrder[i];
+    }
 
     // Call Sobel function in WASM 
-    wasmModule.ccall("edge_sobel", null, ["number", "number"],
-      [dataPtr, 0]);
+    wasmModule.ccall("edge_sobel", null, ["number", "number", "number", "number", "number", "number"],
+      [outputPtr, canvas.width, canvas.height, orderPtr, uploadedLayerOrder.length, 0]);
 
-    const heap = new Uint8Array(wasmModule.HEAPU8.buffer, dataPtr, len);
-
-    // Copy the result back into JS memory and render 
-    imageData.data.set(heap);
-    ctx.putImageData(imageData, 0, 0);
+    // Get the processed image data and display it
+    const heap = new Uint8ClampedArray(wasmModule.HEAPU8.buffer, outputPtr, len);
+    const processedImage = new ImageData(heap, canvas.width, canvas.height);
+    ctx.putImageData(processedImage, 0, 0);
 
     // Free WASM memory
-    wasmModule._free(dataPtr);
+    wasmModule._free(outputPtr);
+    wasmModule._free(orderPtr);
   });
 
   // Attach event listener for the Laplacian of Gaussian button
   document.getElementById("edge_laplacian_of_gaussian").addEventListener("click", () => {
-    if (!imageData) return;
-
     const sigma = parseFloat(document.getElementById('log_sigma').value);
     let kernelSize = parseInt(document.getElementById('log_kernel').value);
 
@@ -169,23 +231,30 @@ Module().then((mod) => {
       return;
     }
 
-    // Allocate WASM memory 
-    const len = imageData.data.length;
-    const dataPtr = wasmModule._malloc(len);
+    // Allocate memory for merged image data 
+    const len = canvas.width * canvas.height * 4;
+    const outputPtr = wasmModule._malloc(len);
+    const orderPtr = wasmModule._malloc(uploadedLayerOrder.length * 4);
+
+    // Copy the layer order into WASM memory
+    const orderHeap = new Int32Array(wasmModule.HEAPU8.buffer, orderPtr, uploadedLayerOrder.length);
+    for (let i = 0; i < uploadedLayerOrder.length; i++) {
+      orderHeap[i] = uploadedLayerOrder[i];
+    }
 
     // Call Laplacian of Gaussian function in WASM 
-    wasmModule.ccall("edge_laplacian_of_gaussian", null, ["number", "number", "number", "number"],
-      [dataPtr, 0, sigma, kernelSize]);
+    wasmModule.ccall("edge_laplacian_of_gaussian", null, ["number", "number", "number", "number", "number", "number", "number", "number"],
+      [outputPtr, canvas.width, canvas.height, orderPtr, uploadedLayerOrder.length, 0, sigma, kernelSize]);
 
-    const heap = new Uint8Array(wasmModule.HEAPU8.buffer, dataPtr, len);
-
-    // Copy the result back into JS memory and render 
-    imageData.data.set(heap);
-    ctx.putImageData(imageData, 0, 0);
+    // Get the processed image data and display it
+    const heap = new Uint8ClampedArray(wasmModule.HEAPU8.buffer, outputPtr, len);
+    const processedImage = new ImageData(heap, canvas.width, canvas.height);
+    ctx.putImageData(processedImage, 0, 0);
 
     // Free WASM memory
-    wasmModule._free(dataPtr);
-  }); 
+    wasmModule._free(outputPtr);
+    wasmModule._free(orderPtr);
+  });
 
   // Colour picker - TODO
 
