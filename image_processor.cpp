@@ -498,9 +498,32 @@ extern "C" {
      * 
      * 
      */
-    void bucket_fill(uint8_t* output, int width, int height, int* order, int orderSize, int layerId, int x, int y, uint8_t r, uint8_t g, uint8_t b, float a, float error_threshold) {
-        // TODO 
+    void bucket_fill(uint8_t* output, int width, int height, int* order, int orderSize, int layer_id, int x, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a, float error_threshold) {
+        Layer* layer = layers[layer_id]; 
+        if (!layer) return; // Layer not found
+    
+        int layer_width = layer->pixels[0].size();
+        int layer_height = layer->pixels.size();
         
+        for (int y = 0; y < layer_height; y++) {
+            for (int x = 0; x < layer_width; x++) {
+                // Get the Pixel from layer's pixel grid 
+                Pixel* p = layer->pixels[y][x]; 
+    
+                // Handle missing pixel 
+                if (!p) {
+                    continue;
+                }
+    
+                // TODO: IMPLEMENT ALGORITHM 
+                // TEMP CHECK - set entire image to RGBA for now 
+                if (x >= width || y >= height) continue;
+                p->r = r;
+                p->g = g;
+                p->b = b;
+                p->a = 255;
+            }
+        }
 
         merge_layers(output, width, height, order, orderSize); 
     }
