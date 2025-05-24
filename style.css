@@ -16,6 +16,7 @@
     background: #f0f0f0;
     border: 1px solid #ccc;
     overflow-y: auto;
+    margin-bottom: 20px;
 }
 
 #layer-list {
@@ -31,3 +32,31 @@
     cursor: move;
     background-color: white;
 } 
+
+.layer-item {
+    padding: 10px;
+    margin: 5px 0;
+    border: 2px solid transparent;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background-color: #f5f5f5;
+}
+
+.layer-item:hover {
+    background-color: #e0e0e0;
+    border-color: #ccc;
+}
+
+.layer-item.selected {
+    background-color: #007bff;
+    color: white;
+    border-color: #0056b3;
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+.layer-item img {
+    display: block;
+    margin: 0 auto 5px auto;
+    border-radius: 3px;
+}

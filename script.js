@@ -11,6 +11,9 @@ let imageIdCounter = 0;
 // Layer order tracking 
 let uploadedLayerOrder = []; 
 
+// Currently selected layer (default to 0)
+let selectedLayerId = 0;
+
 // Dimensions of the canvas should be max of all images 
 let maxWidth = 0; 
 let maxHeight = 0; 
@@ -103,7 +106,35 @@ Module().then((mod) => {
     li.classList.add("layer-item");
     li.dataset.id = id;
     li.innerHTML = `<img src="${src}" width="50"><br>Layer ${id}`;
+    
+    // Add click event listener for layer selection
+    li.addEventListener("click", () => selectLayer(id));
+    
     document.getElementById("layer-list").appendChild(li);
+    
+    // Select the first layer by default
+    if (id === 0) {
+      selectLayer(id);
+    }
+  }
+
+  // Function to handle layer selection
+  function selectLayer(layerId) {
+    // Update the selected layer ID
+    selectedLayerId = layerId;
+    
+    // Remove selected class from all layers
+    document.querySelectorAll('.layer-item').forEach(item => {
+      item.classList.remove('selected');
+    });
+    
+    // Add selected class to the clicked layer
+    const selectedElement = document.querySelector(`.layer-item[data-id="${layerId}"]`);
+    if (selectedElement) {
+      selectedElement.classList.add('selected');
+    }
+    
+    console.log(`Selected layer: ${layerId}`);
   }
 
   // Attach event listeners for each monochrome button 
@@ -132,9 +163,9 @@ Module().then((mod) => {
       orderHeap[i] = uploadedLayerOrder[i];
     }
 
-    // Call the WASM function with all required parameters
+    // Call the WASM function with the selected layer ID instead of hardcoded 0
     wasmModule.ccall(cppFunctionName, null, ["number", "number", "number", "number", "number", "number"],
-      [outputPtr, canvas.width, canvas.height, orderPtr, uploadedLayerOrder.length, 0]);
+      [outputPtr, canvas.width, canvas.height, orderPtr, uploadedLayerOrder.length, selectedLayerId]);
 
     // Get the processed image data and display it
     const heap = new Uint8ClampedArray(wasmModule.HEAPU8.buffer, outputPtr, len);
@@ -174,9 +205,9 @@ Module().then((mod) => {
       orderHeap[i] = uploadedLayerOrder[i];
     }
 
-    // Call Gaussian blur function in WASM - apply to layer 0 (first uploaded layer)
+    // Call Gaussian blur function in WASM with selected layer ID
     wasmModule.ccall("gaussian_blur", null, ["number", "number", "number", "number", "number", "number", "number", "number"],
-      [outputPtr, canvas.width, canvas.height, orderPtr, uploadedLayerOrder.length, 0, sigma, kernelSize]);
+      [outputPtr, canvas.width, canvas.height, orderPtr, uploadedLayerOrder.length, selectedLayerId, sigma, kernelSize]);
 
     // Get the processed image data and display it
     const heap = new Uint8ClampedArray(wasmModule.HEAPU8.buffer, outputPtr, len);
@@ -201,9 +232,9 @@ Module().then((mod) => {
       orderHeap[i] = uploadedLayerOrder[i];
     }
 
-    // Call Sobel function in WASM 
+    // Call Sobel function in WASM with selected layer ID
     wasmModule.ccall("edge_sobel", null, ["number", "number", "number", "number", "number", "number"],
-      [outputPtr, canvas.width, canvas.height, orderPtr, uploadedLayerOrder.length, 0]);
+      [outputPtr, canvas.width, canvas.height, orderPtr, uploadedLayerOrder.length, selectedLayerId]);
 
     // Get the processed image data and display it
     const heap = new Uint8ClampedArray(wasmModule.HEAPU8.buffer, outputPtr, len);
@@ -242,9 +273,9 @@ Module().then((mod) => {
       orderHeap[i] = uploadedLayerOrder[i];
     }
 
-    // Call Laplacian of Gaussian function in WASM 
+    // Call Laplacian of Gaussian function in WASM with selected layer ID
     wasmModule.ccall("edge_laplacian_of_gaussian", null, ["number", "number", "number", "number", "number", "number", "number", "number"],
-      [outputPtr, canvas.width, canvas.height, orderPtr, uploadedLayerOrder.length, 0, sigma, kernelSize]);
+      [outputPtr, canvas.width, canvas.height, orderPtr, uploadedLayerOrder.length, selectedLayerId, sigma, kernelSize]);
 
     // Get the processed image data and display it
     const heap = new Uint8ClampedArray(wasmModule.HEAPU8.buffer, outputPtr, len);
