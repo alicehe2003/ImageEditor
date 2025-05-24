@@ -41,6 +41,20 @@ Key differences:
 - `ccall` calls function immediately, while `cwrap` returns a callable JS function. 
 - Use `ccall` for one-off calls, use `cwrap` for repeated calls / better performance. 
 
+### `merge_layers` function in C++ 
+
+In order to optimize for workloads with a large number of layers, this function uses the following algorithm: 
+
+1. Initialize an unordered set of all pixel positions (x,y). This represents the positions in the current canvas that has yet to be fully "set" with some colour. 
+2. Process each layer from top to bottom. 
+- For the current layer, iterate through its pixel positions (x,y). 
+- For each pixel at position (x,y) of the current layer, if it is not in the unordered map then skip. 
+- For each pixel at position (x,y) of the current layer, if its alpha channel is 255, then remove (x,y) from the unordered set. This indicates that layers beneath this one cannot contribute to the final colour shown. 
+- Use the R,G,B,A information of the current layer to blend it with previous layers. 
+3. Continue until either all layers have been processed, or until the unordered set is empty. 
+
+In the worst case, every pixel of every layer is operated on. This would be equivalent to the brute force method. However, when there are a lot of layers, and the top few layers dominate all pixel information of the canvas, the algorithm allows for early termination as all dominating pixel information has already been processed. That is, all pixels on lower levels (that are covered by the top layers) do not have to be processed at all. 
+
 # Current features 
 
 ## Upload file 
