@@ -77,40 +77,46 @@ extern "C" {
      * Order size is the number of layers in the order array.
      */
     void merge_layers(uint8_t* output, int width, int height, int* order, int orderSize) {
-        // 1. Initialize all pixel positions
-        std::unordered_set<std::pair<int, int>, PositionHash> unsetPixels;
+        // Initialize all output pixels to transparent black
         for (int y = 0; y < height; ++y)
-            for (int x = 0; x < width; ++x)
-                unsetPixels.insert({x, y});
-
-        // 2. Process each layer in order (top to bottom)
-        for (int i = orderSize - 1; i >= 0; --i) {
+            for (int x = 0; x < width; ++x) {
+                int idx = (y * width + x) * 4;
+                output[idx] = output[idx + 1] = output[idx + 2] = output[idx + 3] = 0;
+            }
+    
+        for (int i = 0; i < orderSize; ++i) {
             int id = order[i];
             Layer* layer = layers[id];
             if (!layer) continue;
-
+    
             int h = layer->pixels.size();
             int w = layer->pixels[0].size();
-
+    
             for (int y = 0; y < h; ++y) {
                 for (int x = 0; x < w; ++x) {
-                    // TODO: fix this process 
-
-                    auto it = unsetPixels.find({x, y});
-                    if (it == unsetPixels.end()) continue; // already filled
-
                     Pixel* p = layer->pixels[y][x];
-                    if (!p || p->a != 255) continue; // only fill if alpha is solid
-
+                    if (!p) continue;
+    
+                    if (x >= width || y >= height) continue;
+    
                     int idx = (y * width + x) * 4;
-                    output[idx] = p->r;
-                    output[idx + 1] = p->g;
-                    output[idx + 2] = p->b;
-                    output[idx + 3] = 255;
-
-                    unsetPixels.erase(it); // mark as filled
-
-                    if (unsetPixels.empty()) return; // all filled
+    
+                    float srcAlpha = p->a / 255.0f;
+                    float dstAlpha = output[idx + 3] / 255.0f;
+                    float outAlpha = srcAlpha + dstAlpha * (1 - srcAlpha);
+    
+                    if (outAlpha == 0) continue; // Avoid divide by zero
+    
+                    // Blend RGB using the "over" operator
+                    for (int c = 0; c < 3; ++c) {
+                        float srcColor = ((&p->r)[c]) / 255.0f;
+                        float dstColor = output[idx + c] / 255.0f;
+                        float outColor = (srcColor * srcAlpha + dstColor * dstAlpha * (1 - srcAlpha)) / outAlpha;
+                        output[idx + c] = static_cast<uint8_t>(outColor * 255);
+                    }
+    
+                    // Update alpha channel
+                    output[idx + 3] = static_cast<uint8_t>(outAlpha * 255);
                 }
             }
         }
