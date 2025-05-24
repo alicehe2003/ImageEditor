@@ -408,7 +408,6 @@ extern "C" {
     
                 Pixel* p = layer->pixels[y][x];
                 p->r = p->g = p->b = edge;
-                p->a = 255;
             }
         }
     
@@ -461,7 +460,6 @@ extern "C" {
                 p->r = edge;
                 p->g = edge;
                 p->b = edge;
-                p->a = 255;
             }
         }
     
