@@ -55,6 +55,8 @@ In order to optimize for workloads with a large number of layers, this function 
 
 In the worst case, every pixel of every layer is operated on. This would be equivalent to the brute force method. However, when there are a lot of layers, and the top few layers dominate all pixel information of the canvas, the algorithm allows for early termination as all dominating pixel information has already been processed. That is, all pixels on lower levels (that are covered by the top layers) do not have to be processed at all. 
 
+
+
 # Current features 
 
 ## Upload file 
@@ -136,3 +138,12 @@ https://www.figma.com/blog/speeding-up-build-times/
 
 # Known bugs
 
+## TO CHANGE 
+- Iterate through x y pixels instead in merge layers function
+- Ownership - map to actual object instead of pointer 
+- Computer kernels at compile time (small thing)
+- Break up functions in C++ into smaller functions 
+- Applying kernel can be a generic function 
+- LoG updates layer 3 times instead of just 1 
+- Pipeline LoG function 
+- Change vector to array in layer.h 

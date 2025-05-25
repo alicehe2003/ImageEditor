@@ -308,7 +308,9 @@ Module().then((mod) => {
     const r = parseInt(match[1]);
     const g = parseInt(match[2]);
     const b = parseInt(match[3]);
-    const a = parseFloat(match[4]);
+    const a = Math.round(parseFloat(match[4]) * 255);
+
+    console.log(`RGBA values: ${r}, ${g}, ${b}, ${a}`);
 
     // Error threshold for the bucket fill
     const threshold = parseFloat(document.getElementById("error-threshold").value);
