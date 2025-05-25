@@ -83,6 +83,12 @@ The Sobel method is a gradient-based edge detection method that computes gradien
 
 The Laplacian of Gaussian (LoG) method is a second derivative-based method that applies the Gaussian blur, then the Laplacian operator to detect edges at points of rapid intensity change. The Laplacian filter implementation is NON-STANDARD. Modifications have been made to make the edges more visible. 
 
+## Colour fill (bucket tool) 
+
+Users are able to select a desired colour (RGBA, hex, or colour wheel), input an error threshold (between 0 and 1), and click the image to fill the area with the input threshold. 
+
+The error bound e between 0 and 1 indicates how "different" a pixel to be filled can be compared to the colour of the pixel selected. e = 0 indicates that the two pixels have identical colour, while e = 1 indicates that they are somewhat different. Please see implementation of `pixels_within_threshold` for details on error bound calculation. 
+
 # Additional functionalities and TODOs 
 
 ## Edge detection 
@@ -93,12 +99,6 @@ The Canny edge detector is the standard for many applications.
 3. Non-maximum suppression (thin edges). 
 4. Hysteresis thresholding (track strong/weak edges). 
 This method is accurate, clean, and efficient. 
-
-## Colour fill (bucket tool) 
-
-Users are able to select a desired colour (RGBA, hex, or colour wheel), input an error threshold (between 0 and 1), and click the image to fill the area with the input threshold. 
-
-The error bound e between 0 and 1 indicates how "different" a pixel to be filled can be compared to the colour of the pixel selected. Let R be the reference (selected) pixel, and let T be the pixel that we are trying to determine if it should be filled or not. For T to be filled, it must satisfy ...TODO 
 
 ## Image compression 
 
