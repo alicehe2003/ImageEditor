@@ -506,7 +506,7 @@ extern "C" {
         float distance_squared = dr * dr + dg * dg + db * db + da * da;
         float normalized_distance = distance_squared / 4.0f;
 
-        return normalized_distance <= e;
+        return normalized_distance <= (e / 100.0f);
     }
       
     /**
