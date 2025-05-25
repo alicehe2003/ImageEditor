@@ -554,10 +554,31 @@ extern "C" {
             if (pixels_within_threshold(cur_pixel->r, cur_pixel->g, cur_pixel->b, cur_pixel->a,
                                     ref_r, ref_g, ref_b, ref_a, error_threshold)) {
                 // Set new color
-                cur_pixel->r = r;
-                cur_pixel->g = g;
-                cur_pixel->b = b;
-                cur_pixel->a = a;
+                if (a == 255) {
+                    // Fully opaque: just replace
+                    cur_pixel->r = r;
+                    cur_pixel->g = g;
+                    cur_pixel->b = b;
+                    cur_pixel->a = a;
+                } else {
+                    // Blend: new = src * alpha + dst * (1 - alpha)
+                    float src_a = a / 255.0f;
+                    float dst_a = cur_pixel->a / 255.0f;
+                    float out_a = src_a + dst_a * (1.0f - src_a);
+                
+                    if (out_a > 0.0f) {
+                        cur_pixel->r = static_cast<uint8_t>(
+                            (r * src_a + cur_pixel->r * dst_a * (1.0f - src_a)) / out_a
+                        );
+                        cur_pixel->g = static_cast<uint8_t>(
+                            (g * src_a + cur_pixel->g * dst_a * (1.0f - src_a)) / out_a
+                        );
+                        cur_pixel->b = static_cast<uint8_t>(
+                            (b * src_a + cur_pixel->b * dst_a * (1.0f - src_a)) / out_a
+                        );
+                        cur_pixel->a = static_cast<uint8_t>(out_a * 255.0f);
+                    }
+                }                
 
                 // Push unvisited neighbors
                 const int dx[4] = {1, -1, 0, 0};
