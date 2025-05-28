@@ -26,7 +26,7 @@ extern "C" {
 
     void data_to_layer(uint8_t* data, int width, int height, int id) {
         Layer* layer = new Layer(id);
-        layer->pixels.resize(height, std::vector<Pixel*>(width)); 
+        layer->pixels.resize(height, std::vector<Pixel>(width)); 
 
         // Current x, y position in the image 
         int x = 0, y = 0;
@@ -40,7 +40,7 @@ extern "C" {
             uint8_t a = data[i + 3];
 
             // Create a new pixel and assign it to the layer 
-            layer->pixels[y][x] = new Pixel(r, g, b, a);
+            layer->pixels[y][x] = Pixel(r, g, b, a);
 
             // Move to the next pixel 
             x++;
@@ -53,18 +53,6 @@ extern "C" {
         // Store the layer in the cache
         layers[id] = layer;
     }
-
-    void clear_layers() {
-        for (auto& [id, layer] : layers) {
-            for (auto& row : layer->pixels) {
-                for (Pixel* p : row) {
-                    delete p;
-                }
-            }
-            delete layer;
-        }
-        layers.clear();
-    }    
 
     // Helper hash for 2D positions
     struct PositionHash {
@@ -110,21 +98,27 @@ extern "C" {
                     // If pixel position is not in pixelPositions set, skip it
                     if (pixelPositions.find({x, y}) == pixelPositions.end()) continue;
 
-                    Pixel* p = layer->pixels[y][x];
-                    if (!p) continue;
+                    Pixel& p = layer->pixels[y][x];
                     if (x >= width || y >= height) continue;
     
                     int idx = (y * width + x) * 4;
     
                     float dstAlpha = output[idx + 3] / 255.0f;  // existing alpha in output
-                    float srcAlpha = p->a / 255.0f;             // new layer alpha (destination in this case)
+                    float srcAlpha = p.a / 255.0f;             // new layer alpha (destination in this case)
     
                     float outAlpha = dstAlpha + srcAlpha * (1 - dstAlpha);
                     if (outAlpha == 0) continue;
     
                     for (int c = 0; c < 3; ++c) {
                         float dstColor = output[idx + c] / 255.0f;      // existing output color (source)
-                        float srcColor = ((&p->r)[c]) / 255.0f;         // new pixel color (destination)
+                        float srcColor;
+                        // new pixel color (destination)
+                        switch (c) {
+                            case 0: srcColor = p.r / 255.0f; break;
+                            case 1: srcColor = p.g / 255.0f; break;
+                            case 2: srcColor = p.b / 255.0f; break;
+                            case 3: srcColor = p.a / 255.0f; break;
+                        }                                               
                         float outColor = (dstColor * dstAlpha + srcColor * srcAlpha * (1 - dstAlpha)) / outAlpha;
                         output[idx + c] = static_cast<uint8_t>(outColor * 255);
                     }
@@ -150,26 +144,21 @@ extern "C" {
         for (int y = 0; y < layer_height; y++) {
             for (int x = 0; x < layer_width; x++) {
                 // Get the Pixel from layer's pixel grid 
-                Pixel* p = layer->pixels[y][x]; 
+                Pixel& p = layer->pixels[y][x]; 
     
-                // Handle missing pixel 
-                if (!p) {
-                    continue;
-                }
-    
-                uint8_t r = p->r;
-                uint8_t g = p->g;
-                uint8_t b = p->b;
-                uint8_t a = p->a; // preserve the alpha channel
+                uint8_t r = p.r;
+                uint8_t g = p.g;
+                uint8_t b = p.b;
+                uint8_t a = p.a; // preserve the alpha channel
     
                 // Compute the simple average to get the grayscale value
                 uint8_t gray = static_cast<uint8_t>((r + g + b) / 3); 
     
                 // Write greyscale value to pixel 
-                p->r = gray;
-                p->g = gray;
-                p->b = gray;
-                p->a = a;
+                p.r = gray;
+                p.g = gray;
+                p.b = gray;
+                p.a = a;
             }
         }
     
@@ -187,26 +176,21 @@ extern "C" {
         for (int y = 0; y < layer_height; y++) {
             for (int x = 0; x < layer_width; x++) {
                 // Get the Pixel from layer's pixel grid 
-                Pixel* p = layer->pixels[y][x]; 
+                Pixel& p = layer->pixels[y][x]; 
     
-                // Handle missing pixel 
-                if (!p) {
-                    continue;
-                }
-    
-                uint8_t r = p->r;
-                uint8_t g = p->g;
-                uint8_t b = p->b;
-                uint8_t a = p->a; // preserve the alpha channel
+                uint8_t r = p.r;
+                uint8_t g = p.g;
+                uint8_t b = p.b;
+                uint8_t a = p.a; // preserve the alpha channel
     
                 // Compute grayscale value
                 uint8_t gray = static_cast<uint8_t>(0.299 * r + 0.587 * g + 0.114 * b);
     
                 // Write greyscale value to pixel
-                p->r = gray;
-                p->g = gray;
-                p->b = gray;
-                p->a = a;
+                p.r = gray;
+                p.g = gray;
+                p.b = gray;
+                p.a = a;
             }
         }
     
@@ -224,26 +208,21 @@ extern "C" {
         for (int y = 0; y < layer_height; y++) {
             for (int x = 0; x < layer_width; x++) {
                 // Get the Pixel from layer's pixel grid 
-                Pixel* p = layer->pixels[y][x]; 
+                Pixel& p = layer->pixels[y][x]; 
     
-                // Handle missing pixel 
-                if (!p) {
-                    continue;
-                }
-    
-                uint8_t r = p->r;
-                uint8_t g = p->g;
-                uint8_t b = p->b;
-                uint8_t a = p->a; // preserve the alpha channel
+                uint8_t r = p.r;
+                uint8_t g = p.g;
+                uint8_t b = p.b;
+                uint8_t a = p.a; // preserve the alpha channel
     
                 // Compute grayscale value
                 uint8_t gray = static_cast<uint8_t>((std::max({r, g, b}) + std::min({r, g, b})) / 2);
     
                 // Write greyscale value to pixel
-                p->r = gray;
-                p->g = gray;
-                p->b = gray;
-                p->a = a;
+                p.r = gray;
+                p.g = gray;
+                p.b = gray;
+                p.a = a;
             }
         }
     
@@ -261,26 +240,21 @@ extern "C" {
         for (int y = 0; y < layer_height; y++) {
             for (int x = 0; x < layer_width; x++) {
                 // Get the Pixel from layer's pixel grid 
-                Pixel* p = layer->pixels[y][x]; 
+                Pixel& p = layer->pixels[y][x]; 
     
-                // Handle missing pixel 
-                if (!p) {
-                    continue;
-                }
-    
-                uint8_t r = p->r;
-                uint8_t g = p->g;
-                uint8_t b = p->b;
-                uint8_t a = p->a; // preserve the alpha channel
+                uint8_t r = p.r;
+                uint8_t g = p.g;
+                uint8_t b = p.b;
+                uint8_t a = p.a; // preserve the alpha channel
     
                 // Compute grayscale value
                 uint8_t gray = static_cast<uint8_t>(0.2126 * r + 0.7152 * g + 0.0722 * b);
     
                 // Write greyscale value to pixel
-                p->r = gray;
-                p->g = gray;
-                p->b = gray;
-                p->a = a;
+                p.r = gray;
+                p.g = gray;
+                p.b = gray;
+                p.a = a;
             }
         }
     
@@ -324,13 +298,12 @@ extern "C" {
                 for (int k = -halfKernel; k <= halfKernel; k++) {
                     int sampleX = std::clamp(x + k, 0, layer_width - 1);
     
-                    Pixel* p = layer->pixels[y][sampleX];
-                    if (!p) continue; // Skip null pixels
-    
-                    r += p->r * kernel[k + halfKernel];
-                    g += p->g * kernel[k + halfKernel];
-                    b += p->b * kernel[k + halfKernel];
-                    a += p->a * kernel[k + halfKernel];
+                    Pixel& p = layer->pixels[y][sampleX];
+
+                    r += p.r * kernel[k + halfKernel];
+                    g += p.g * kernel[k + halfKernel];
+                    b += p.b * kernel[k + halfKernel];
+                    a += p.a * kernel[k + halfKernel];
                 }
     
                 int dstIdx = (y * layer_width + x) * 4;
@@ -357,13 +330,11 @@ extern "C" {
                 }
     
                 // Update the pixel in the layer
-                Pixel* p = layer->pixels[y][x];
-                if (p) {
-                    p->r = static_cast<uint8_t>(std::clamp(static_cast<int>(r), 0, 255));
-                    p->g = static_cast<uint8_t>(std::clamp(static_cast<int>(g), 0, 255));
-                    p->b = static_cast<uint8_t>(std::clamp(static_cast<int>(b), 0, 255));
-                    p->a = static_cast<uint8_t>(std::clamp(static_cast<int>(a), 0, 255));
-                }
+                Pixel& p = layer->pixels[y][x];
+                p.r = static_cast<uint8_t>(std::clamp(static_cast<int>(r), 0, 255));
+                p.g = static_cast<uint8_t>(std::clamp(static_cast<int>(g), 0, 255));
+                p.b = static_cast<uint8_t>(std::clamp(static_cast<int>(b), 0, 255));
+                p.a = static_cast<uint8_t>(std::clamp(static_cast<int>(a), 0, 255));
             }
         }
     
@@ -405,8 +376,8 @@ extern "C" {
     
                 for (int ky = -1; ky <= 1; ky++) {
                     for (int kx = -1; kx <= 1; kx++) {
-                        Pixel* p = layer->pixels[y + ky][x + kx];
-                        uint8_t gray = static_cast<uint8_t>((p->r + p->g + p->b) / 3);
+                        Pixel& p = layer->pixels[y + ky][x + kx];
+                        uint8_t gray = static_cast<uint8_t>((p.r + p.g + p.b) / 3);
                         gx += gray * Gx[ky + 1][kx + 1];
                         gy += gray * Gy[ky + 1][kx + 1];
                     }
@@ -424,8 +395,8 @@ extern "C" {
                 int mag = magnitudes[y * layer_width + x];
                 uint8_t edge = static_cast<uint8_t>((mag * 255) / maxMag);
     
-                Pixel* p = layer->pixels[y][x];
-                p->r = p->g = p->b = edge;
+                Pixel& p = layer->pixels[y][x];
+                p.r = p.g = p.b = edge;
             }
         }
     
@@ -454,8 +425,8 @@ extern "C" {
                 int sum = 0;
                 for (int ky = -1; ky <= 1; ky++) {
                     for (int kx = -1; kx <= 1; kx++) {
-                        Pixel* p = layer->pixels[y + ky][x + kx];
-                        uint8_t gray = static_cast<uint8_t>((p->r + p->g + p->b) / 3);
+                        Pixel& p = layer->pixels[y + ky][x + kx];
+                        uint8_t gray = static_cast<uint8_t>((p.r + p.g + p.b) / 3);
                         sum += gray * kernel[ky + 1][kx + 1];
                     }
                 }
@@ -474,10 +445,10 @@ extern "C" {
                 // Clamp the result to 0-255 range
                 uint8_t edge = static_cast<uint8_t>(std::max(0, std::min(255, amplified)));
     
-                Pixel* p = layer->pixels[y][x];
-                p->r = edge;
-                p->g = edge;
-                p->b = edge;
+                Pixel& p = layer->pixels[y][x];
+                p.r = edge;
+                p.g = edge;
+                p.b = edge;
             }
         }
     
@@ -529,13 +500,12 @@ extern "C" {
 
         if (x < 0 || x >= layer_width || y < 0 || y >= layer_height) return;
 
-        Pixel* ref_pixel = layer->pixels[y][x];
-        if (!ref_pixel) return;
+        Pixel& ref_pixel = layer->pixels[y][x];
 
-        uint8_t ref_r = ref_pixel->r;
-        uint8_t ref_g = ref_pixel->g;
-        uint8_t ref_b = ref_pixel->b;
-        uint8_t ref_a = ref_pixel->a;
+        uint8_t ref_r = ref_pixel.r;
+        uint8_t ref_g = ref_pixel.g;
+        uint8_t ref_b = ref_pixel.b;
+        uint8_t ref_a = ref_pixel.a;
 
         // Create visited matrix
         std::vector<std::vector<bool>> visited(layer_height, std::vector<bool>(layer_width, false));
@@ -549,36 +519,35 @@ extern "C" {
             q.pop();
 
             // Get current pixel
-            Pixel* cur_pixel = layer->pixels[cur_y][cur_x];
-            if (!cur_pixel) continue;
+            Pixel& cur_pixel = layer->pixels[cur_y][cur_x];
 
             // Check if the color matches the reference
-            if (pixels_within_threshold(cur_pixel->r, cur_pixel->g, cur_pixel->b, cur_pixel->a,
+            if (pixels_within_threshold(cur_pixel.r, cur_pixel.g, cur_pixel.b, cur_pixel.a,
                                     ref_r, ref_g, ref_b, ref_a, error_threshold)) {
                 // Set new color
                 if (a == 255) {
                     // Fully opaque: just replace
-                    cur_pixel->r = r;
-                    cur_pixel->g = g;
-                    cur_pixel->b = b;
-                    cur_pixel->a = a;
+                    cur_pixel.r = r;
+                    cur_pixel.g = g;
+                    cur_pixel.b = b;
+                    cur_pixel.a = a;
                 } else {
                     // Blend: new = src * alpha + dst * (1 - alpha)
                     float src_a = a / 255.0f;
-                    float dst_a = cur_pixel->a / 255.0f;
+                    float dst_a = cur_pixel.a / 255.0f;
                     float out_a = src_a + dst_a * (1.0f - src_a);
                 
                     if (out_a > 0.0f) {
-                        cur_pixel->r = static_cast<uint8_t>(
-                            (r * src_a + cur_pixel->r * dst_a * (1.0f - src_a)) / out_a
+                        cur_pixel.r = static_cast<uint8_t>(
+                            (r * src_a + cur_pixel.r * dst_a * (1.0f - src_a)) / out_a
                         );
-                        cur_pixel->g = static_cast<uint8_t>(
-                            (g * src_a + cur_pixel->g * dst_a * (1.0f - src_a)) / out_a
+                        cur_pixel.g = static_cast<uint8_t>(
+                            (g * src_a + cur_pixel.g * dst_a * (1.0f - src_a)) / out_a
                         );
-                        cur_pixel->b = static_cast<uint8_t>(
-                            (b * src_a + cur_pixel->b * dst_a * (1.0f - src_a)) / out_a
+                        cur_pixel.b = static_cast<uint8_t>(
+                            (b * src_a + cur_pixel.b * dst_a * (1.0f - src_a)) / out_a
                         );
-                        cur_pixel->a = static_cast<uint8_t>(out_a * 255.0f);
+                        cur_pixel.a = static_cast<uint8_t>(out_a * 255.0f);
                     }
                 }                
 
