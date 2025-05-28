@@ -11,6 +11,7 @@ Emscripten is an open-source compiler toolchain that allows you to compile C and
 Run the following in the command line: 
 
 `emcc image_processor.cpp \
+  -std=c++23 \
   -o image_processor.js \
   -s MODULARIZE=1 \
   -s 'EXPORT_NAME="Module"' \
