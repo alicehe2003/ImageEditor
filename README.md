@@ -142,7 +142,6 @@ https://www.figma.com/blog/speeding-up-build-times/
 ## TO CHANGE 
 - Iterate through x y pixels instead in merge layers function
 - Ownership - map to actual object instead of pointer 
-- Computer kernels at compile time (small thing)
 - Break up functions in C++ into smaller functions 
 - Applying kernel can be a generic function 
 - LoG updates layer 3 times instead of just 1 
