@@ -4,14 +4,14 @@ Emscripten compiles C++ functions into WASM, which is then called by JS.
 
 WASM modules run in a sandbox environment isolates from the rest of the system, hence cannot access anything outside their own memory space. In this case, JS and C++ cannot directly share the same memory space or allow direct memory manipulation. All "communication" is achieved through allocating some memory, then copying data from that memory space. This is a security feature that prevents malicious code from accessing sensitive resources or interfering with other parts of the application. 
 
-### Emscripten 
+I considered making the kernal computation in `gaussian_blur` known at compile time, but this would require C++23 (since `exp` only became a `const` in C++23) - this is not an issue. The issue lies in the fact that the refactoring would involve using templates for the kernel size and sigma for kernal calculations, and I would have to export multiple `gaussian_blur` functions with fixed variants of kernel and sigma, as they will be called in JS. This introduces the issue of having to limit the sigma and kernel sizes passed by users to a few pre-defined options. 
 
+### Emscripten 
 Emscripten is an open-source compiler toolchain that allows you to compile C and C++ code into WASM, so it can run effectively in web browser. 
 
 Run the following in the command line: 
 
 `emcc image_processor.cpp \
-  -std=c++23 \
   -o image_processor.js \
   -s MODULARIZE=1 \
   -s 'EXPORT_NAME="Module"' \

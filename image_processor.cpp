@@ -7,6 +7,8 @@
 #include <unordered_set>
 #include <utility> 
 #include <queue> 
+#include <array>
+#include <cmath>
 
 // Cache of layers 
 std::unordered_map<int, Layer*> layers;
