@@ -302,11 +302,96 @@ void laplacian_filter_layer(int layer_id) {
     }
 }
 
+// Helper function to check if two pixels are within a threshold
+bool pixels_within_threshold(uint8_t r1, uint8_t g1, uint8_t b1, uint8_t a1,
+    uint8_t r2, uint8_t g2, uint8_t b2, uint8_t a2,
+    float e) {
+    float nr1 = r1 / 255.0f, ng1 = g1 / 255.0f, nb1 = b1 / 255.0f, na1 = a1 / 255.0f;
+    float nr2 = r2 / 255.0f, ng2 = g2 / 255.0f, nb2 = b2 / 255.0f, na2 = a2 / 255.0f;
 
+    float dr = nr1 - nr2, dg = ng1 - ng2, db = nb1 - nb2, da = na1 - na2;
 
+    float distance_squared = dr * dr + dg * dg + db * db + da * da;
+    float normalized_distance = distance_squared / 4.0f;
 
+    return normalized_distance <= (e / 100.0f);
+}
 
+void bucket_fill_layer(int layer_id, int x, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a, float error_threshold) {
+    Layer& layer = layers[layer_id]; 
 
+    int layer_width = layer.pixels[0].size();
+    int layer_height = layer.pixels.size();
+
+    if (x < 0 || x >= layer_width || y < 0 || y >= layer_height) return;
+
+    Pixel& ref_pixel = layer.pixels[y][x];
+
+    uint8_t ref_r = ref_pixel.r;
+    uint8_t ref_g = ref_pixel.g;
+    uint8_t ref_b = ref_pixel.b;
+    uint8_t ref_a = ref_pixel.a;
+
+    // Create visited matrix
+    std::vector<std::vector<bool>> visited(layer_height, std::vector<bool>(layer_width, false));
+
+    std::queue<std::pair<int, int>> q;
+    q.push({x, y});
+    visited[y][x] = true;
+
+    while (!q.empty()) {
+        auto [cur_x, cur_y] = q.front();
+        q.pop();
+
+        // Get current pixel
+        Pixel& cur_pixel = layer.pixels[cur_y][cur_x];
+
+        // Check if the color matches the reference
+        if (pixels_within_threshold(cur_pixel.r, cur_pixel.g, cur_pixel.b, cur_pixel.a,
+                                ref_r, ref_g, ref_b, ref_a, error_threshold)) {
+            // Set new color
+            if (a == 255) {
+                // Fully opaque: just replace
+                cur_pixel.r = r;
+                cur_pixel.g = g;
+                cur_pixel.b = b;
+                cur_pixel.a = a;
+            } else {
+                // Blend: new = src * alpha + dst * (1 - alpha)
+                float src_a = a / 255.0f;
+                float dst_a = cur_pixel.a / 255.0f;
+                float out_a = src_a + dst_a * (1.0f - src_a);
+            
+                if (out_a > 0.0f) {
+                    cur_pixel.r = static_cast<uint8_t>(
+                        (r * src_a + cur_pixel.r * dst_a * (1.0f - src_a)) / out_a
+                    );
+                    cur_pixel.g = static_cast<uint8_t>(
+                        (g * src_a + cur_pixel.g * dst_a * (1.0f - src_a)) / out_a
+                    );
+                    cur_pixel.b = static_cast<uint8_t>(
+                        (b * src_a + cur_pixel.b * dst_a * (1.0f - src_a)) / out_a
+                    );
+                    cur_pixel.a = static_cast<uint8_t>(out_a * 255.0f);
+                }
+            }                
+
+            // Push unvisited neighbors
+            const int dx[4] = {1, -1, 0, 0};
+            const int dy[4] = {0, 0, 1, -1};
+
+            for (int dir = 0; dir < 4; ++dir) {
+                int nx = cur_x + dx[dir];
+                int ny = cur_y + dy[dir];
+
+                if (nx >= 0 && nx < layer_width && ny >= 0 && ny < layer_height && !visited[ny][nx]) {
+                    visited[ny][nx] = true;
+                    q.push({nx, ny});
+                }
+            }
+        }
+    }
+}
 
 extern "C" {
 
@@ -495,21 +580,6 @@ extern "C" {
         // Call merge_layers to update the output data
         merge_layers(data, width, height, order, orderSize);
     }
-
-    // Helper function to check if two pixels are within a threshold
-    bool pixels_within_threshold(uint8_t r1, uint8_t g1, uint8_t b1, uint8_t a1,
-        uint8_t r2, uint8_t g2, uint8_t b2, uint8_t a2,
-        float e) {
-        float nr1 = r1 / 255.0f, ng1 = g1 / 255.0f, nb1 = b1 / 255.0f, na1 = a1 / 255.0f;
-        float nr2 = r2 / 255.0f, ng2 = g2 / 255.0f, nb2 = b2 / 255.0f, na2 = a2 / 255.0f;
-
-        float dr = nr1 - nr2, dg = ng1 - ng2, db = nb1 - nb2, da = na1 - na2;
-
-        float distance_squared = dr * dr + dg * dg + db * db + da * da;
-        float normalized_distance = distance_squared / 4.0f;
-
-        return normalized_distance <= (e / 100.0f);
-    }
       
     /**
      * Bucket fill algorithm to fill a region with a color.
@@ -521,80 +591,9 @@ extern "C" {
     void bucket_fill(uint8_t* output, int width, int height, int* order, int orderSize,
                      int layer_id, int x, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a,
                      float error_threshold) {
-        Layer& layer = layers[layer_id]; 
+        bucket_fill_layer(layer_id, x, y, r, g, b, a, error_threshold);
 
-        int layer_width = layer.pixels[0].size();
-        int layer_height = layer.pixels.size();
-
-        if (x < 0 || x >= layer_width || y < 0 || y >= layer_height) return;
-
-        Pixel& ref_pixel = layer.pixels[y][x];
-
-        uint8_t ref_r = ref_pixel.r;
-        uint8_t ref_g = ref_pixel.g;
-        uint8_t ref_b = ref_pixel.b;
-        uint8_t ref_a = ref_pixel.a;
-
-        // Create visited matrix
-        std::vector<std::vector<bool>> visited(layer_height, std::vector<bool>(layer_width, false));
-
-        std::queue<std::pair<int, int>> q;
-        q.push({x, y});
-        visited[y][x] = true;
-
-        while (!q.empty()) {
-            auto [cur_x, cur_y] = q.front();
-            q.pop();
-
-            // Get current pixel
-            Pixel& cur_pixel = layer.pixels[cur_y][cur_x];
-
-            // Check if the color matches the reference
-            if (pixels_within_threshold(cur_pixel.r, cur_pixel.g, cur_pixel.b, cur_pixel.a,
-                                    ref_r, ref_g, ref_b, ref_a, error_threshold)) {
-                // Set new color
-                if (a == 255) {
-                    // Fully opaque: just replace
-                    cur_pixel.r = r;
-                    cur_pixel.g = g;
-                    cur_pixel.b = b;
-                    cur_pixel.a = a;
-                } else {
-                    // Blend: new = src * alpha + dst * (1 - alpha)
-                    float src_a = a / 255.0f;
-                    float dst_a = cur_pixel.a / 255.0f;
-                    float out_a = src_a + dst_a * (1.0f - src_a);
-                
-                    if (out_a > 0.0f) {
-                        cur_pixel.r = static_cast<uint8_t>(
-                            (r * src_a + cur_pixel.r * dst_a * (1.0f - src_a)) / out_a
-                        );
-                        cur_pixel.g = static_cast<uint8_t>(
-                            (g * src_a + cur_pixel.g * dst_a * (1.0f - src_a)) / out_a
-                        );
-                        cur_pixel.b = static_cast<uint8_t>(
-                            (b * src_a + cur_pixel.b * dst_a * (1.0f - src_a)) / out_a
-                        );
-                        cur_pixel.a = static_cast<uint8_t>(out_a * 255.0f);
-                    }
-                }                
-
-                // Push unvisited neighbors
-                const int dx[4] = {1, -1, 0, 0};
-                const int dy[4] = {0, 0, 1, -1};
-
-                for (int dir = 0; dir < 4; ++dir) {
-                    int nx = cur_x + dx[dir];
-                    int ny = cur_y + dy[dir];
-
-                    if (nx >= 0 && nx < layer_width && ny >= 0 && ny < layer_height && !visited[ny][nx]) {
-                        visited[ny][nx] = true;
-                        q.push({nx, ny});
-                    }
-                }
-            }
-        }
-
+        // Call merge_layers to update the output data
         merge_layers(output, width, height, order, orderSize); 
     }
 }
