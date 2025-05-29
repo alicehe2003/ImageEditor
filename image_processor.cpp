@@ -13,6 +13,119 @@
 // Cache of layers 
 std::unordered_map<int, Layer> layers;
 
+void monochrome_average_layer(int layer_id) {
+    Layer& layer = layers[layer_id]; 
+    
+    int layer_width = layer.pixels[0].size();
+    int layer_height = layer.pixels.size();
+    
+    for (int y = 0; y < layer_height; y++) {
+        for (int x = 0; x < layer_width; x++) {
+            // Get the Pixel from layer's pixel grid 
+            Pixel& p = layer.pixels[y][x]; 
+
+            uint8_t r = p.r;
+            uint8_t g = p.g;
+            uint8_t b = p.b;
+            uint8_t a = p.a; // preserve the alpha channel
+
+            // Compute the simple average to get the grayscale value
+            uint8_t gray = static_cast<uint8_t>((r + g + b) / 3); 
+
+            // Write greyscale value to pixel 
+            p.r = gray;
+            p.g = gray;
+            p.b = gray;
+            p.a = a;
+        }
+    }
+}
+
+void monochrome_luminosity_layer(int layer_id) {
+    Layer& layer = layers[layer_id]; 
+
+    int layer_width = layer.pixels[0].size();
+    int layer_height = layer.pixels.size();
+    
+    for (int y = 0; y < layer_height; y++) {
+        for (int x = 0; x < layer_width; x++) {
+            // Get the Pixel from layer's pixel grid 
+            Pixel& p = layer.pixels[y][x]; 
+
+            uint8_t r = p.r;
+            uint8_t g = p.g;
+            uint8_t b = p.b;
+            uint8_t a = p.a; // preserve the alpha channel
+
+            // Compute grayscale value
+            uint8_t gray = static_cast<uint8_t>(0.299 * r + 0.587 * g + 0.114 * b);
+
+            // Write greyscale value to pixel
+            p.r = gray;
+            p.g = gray;
+            p.b = gray;
+            p.a = a;
+        }
+    }
+}
+
+void monochrome_lightness_layer(int layer_id) {
+    Layer& layer = layers[layer_id]; 
+    
+    int layer_width = layer.pixels[0].size();
+    int layer_height = layer.pixels.size();
+    
+    for (int y = 0; y < layer_height; y++) {
+        for (int x = 0; x < layer_width; x++) {
+            // Get the Pixel from layer's pixel grid 
+            Pixel& p = layer.pixels[y][x]; 
+
+            uint8_t r = p.r;
+            uint8_t g = p.g;
+            uint8_t b = p.b;
+            uint8_t a = p.a; // preserve the alpha channel
+
+            // Compute grayscale value
+            uint8_t gray = static_cast<uint8_t>((std::max({r, g, b}) + std::min({r, g, b})) / 2);
+
+            // Write greyscale value to pixel
+            p.r = gray;
+            p.g = gray;
+            p.b = gray;
+            p.a = a;
+        }
+    }
+}
+
+void monochrome_itu_layer(int layer_id) {
+    Layer& layer = layers[layer_id]; 
+    
+    int layer_width = layer.pixels[0].size();
+    int layer_height = layer.pixels.size();
+    
+    for (int y = 0; y < layer_height; y++) {
+        for (int x = 0; x < layer_width; x++) {
+            // Get the Pixel from layer's pixel grid 
+            Pixel& p = layer.pixels[y][x]; 
+
+            uint8_t r = p.r;
+            uint8_t g = p.g;
+            uint8_t b = p.b;
+            uint8_t a = p.a; // preserve the alpha channel
+
+            // Compute grayscale value
+            uint8_t gray = static_cast<uint8_t>(0.2126 * r + 0.7152 * g + 0.0722 * b);
+
+            // Write greyscale value to pixel
+            p.r = gray;
+            p.g = gray;
+            p.b = gray;
+            p.a = a;
+        }
+    }
+}
+
+
 extern "C" {
 
     /**
@@ -134,124 +247,28 @@ extern "C" {
     }    
 
     void monochrome_average(uint8_t* data, int width, int height, int* order, int orderSize, int layer_id) {
-        Layer& layer = layers[layer_id]; 
-    
-        int layer_width = layer.pixels[0].size();
-        int layer_height = layer.pixels.size();
-        
-        for (int y = 0; y < layer_height; y++) {
-            for (int x = 0; x < layer_width; x++) {
-                // Get the Pixel from layer's pixel grid 
-                Pixel& p = layer.pixels[y][x]; 
-    
-                uint8_t r = p.r;
-                uint8_t g = p.g;
-                uint8_t b = p.b;
-                uint8_t a = p.a; // preserve the alpha channel
-    
-                // Compute the simple average to get the grayscale value
-                uint8_t gray = static_cast<uint8_t>((r + g + b) / 3); 
-    
-                // Write greyscale value to pixel 
-                p.r = gray;
-                p.g = gray;
-                p.b = gray;
-                p.a = a;
-            }
-        }
+        monochrome_average_layer(layer_id);
     
         // Call merge_layers to update the output data
         merge_layers(data, width, height, order, orderSize);
     }
 
     void monochrome_luminosity(uint8_t* data, int width, int height, int* order, int orderSize, int layer_id) {
-        Layer& layer = layers[layer_id]; 
-    
-        int layer_width = layer.pixels[0].size();
-        int layer_height = layer.pixels.size();
-        
-        for (int y = 0; y < layer_height; y++) {
-            for (int x = 0; x < layer_width; x++) {
-                // Get the Pixel from layer's pixel grid 
-                Pixel& p = layer.pixels[y][x]; 
-    
-                uint8_t r = p.r;
-                uint8_t g = p.g;
-                uint8_t b = p.b;
-                uint8_t a = p.a; // preserve the alpha channel
-    
-                // Compute grayscale value
-                uint8_t gray = static_cast<uint8_t>(0.299 * r + 0.587 * g + 0.114 * b);
-    
-                // Write greyscale value to pixel
-                p.r = gray;
-                p.g = gray;
-                p.b = gray;
-                p.a = a;
-            }
-        }
+        monochrome_luminosity_layer(layer_id);
     
         // Call merge_layers to update the output data
         merge_layers(data, width, height, order, orderSize);
     }
     
     void monochrome_lightness(uint8_t* data, int width, int height, int* order, int orderSize, int layer_id) {
-        Layer& layer = layers[layer_id]; 
-    
-        int layer_width = layer.pixels[0].size();
-        int layer_height = layer.pixels.size();
-        
-        for (int y = 0; y < layer_height; y++) {
-            for (int x = 0; x < layer_width; x++) {
-                // Get the Pixel from layer's pixel grid 
-                Pixel& p = layer.pixels[y][x]; 
-    
-                uint8_t r = p.r;
-                uint8_t g = p.g;
-                uint8_t b = p.b;
-                uint8_t a = p.a; // preserve the alpha channel
-    
-                // Compute grayscale value
-                uint8_t gray = static_cast<uint8_t>((std::max({r, g, b}) + std::min({r, g, b})) / 2);
-    
-                // Write greyscale value to pixel
-                p.r = gray;
-                p.g = gray;
-                p.b = gray;
-                p.a = a;
-            }
-        }
+        monochrome_lightness_layer(layer_id);
     
         // Call merge_layers to update the output data
         merge_layers(data, width, height, order, orderSize);
     }
     
     void monochrome_itu(uint8_t* data, int width, int height, int* order, int orderSize, int layer_id) {
-        Layer& layer = layers[layer_id]; 
-    
-        int layer_width = layer.pixels[0].size();
-        int layer_height = layer.pixels.size();
-        
-        for (int y = 0; y < layer_height; y++) {
-            for (int x = 0; x < layer_width; x++) {
-                // Get the Pixel from layer's pixel grid 
-                Pixel& p = layer.pixels[y][x]; 
-    
-                uint8_t r = p.r;
-                uint8_t g = p.g;
-                uint8_t b = p.b;
-                uint8_t a = p.a; // preserve the alpha channel
-    
-                // Compute grayscale value
-                uint8_t gray = static_cast<uint8_t>(0.2126 * r + 0.7152 * g + 0.0722 * b);
-    
-                // Write greyscale value to pixel
-                p.r = gray;
-                p.g = gray;
-                p.b = gray;
-                p.a = a;
-            }
-        }
+        monochrome_itu_layer(layer_id); 
     
         // Call merge_layers to update the output data
         merge_layers(data, width, height, order, orderSize);
