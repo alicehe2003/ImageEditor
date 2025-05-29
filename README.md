@@ -124,16 +124,13 @@ This method is accurate, clean, and efficient.
 ## TODO 
 
 - Explain the sigma and kernel for Gaussian Blur 
-- Update README with demos of each filter 
+- Update README with demos of each filter, example use cases 
 - CSS styling and design 
 - Use SIMD instructions for WASM 
-- Consider passing C++ objects instead of pointer to raw data 
 - Check LinkedIn job application requirements 
 - Check Figma 
 - Design using Figma 
 - Open CV library 
-- Use smart pointers in C++ 
-- Fix bug with shared memory issue g
 
 Links to consider 
 
