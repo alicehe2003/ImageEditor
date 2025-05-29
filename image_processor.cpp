@@ -201,6 +201,113 @@ void gaussian_blur_layer(int layer_id, double sigma, int kernelSize) {
     }
 }
 
+void edge_sobel_layer(int layer_id) {
+    Layer& layer = layers[layer_id];
+
+    int layer_width = layer.pixels[0].size();
+    int layer_height = layer.pixels.size();
+
+    // Sobel kernels
+    const int Gx[3][3] = {
+        {-1, 0, 1},
+        {-2, 0, 2},
+        {-1, 0, 1}
+    };
+    const int Gy[3][3] = {
+        {1, 2, 1},
+        {0, 0, 0},
+        {-1, -2, -1}
+    };
+
+    // First pass: compute magnitudes and find the max value
+    std::vector<int> magnitudes(layer_width * layer_height, 0);
+    int maxMag = 1; // Avoid division by zero
+
+    for (int y = 1; y < layer_height - 1; y++) {
+        for (int x = 1; x < layer_width - 1; x++) {
+            int gx = 0, gy = 0;
+
+            for (int ky = -1; ky <= 1; ky++) {
+                for (int kx = -1; kx <= 1; kx++) {
+                    Pixel& p = layer.pixels[y + ky][x + kx];
+                    uint8_t gray = static_cast<uint8_t>((p.r + p.g + p.b) / 3);
+                    gx += gray * Gx[ky + 1][kx + 1];
+                    gy += gray * Gy[ky + 1][kx + 1];
+                }
+            }
+
+            int mag = static_cast<int>(std::sqrt(gx * gx + gy * gy));
+            magnitudes[y * layer_width + x] = mag;
+            if (mag > maxMag) maxMag = mag;
+        }
+    }
+
+    // Second pass: normalize and write to layer
+    for (int y = 1; y < layer_height - 1; y++) {
+        for (int x = 1; x < layer_width - 1; x++) {
+            int mag = magnitudes[y * layer_width + x];
+            uint8_t edge = static_cast<uint8_t>((mag * 255) / maxMag);
+
+            Pixel& p = layer.pixels[y][x];
+            p.r = p.g = p.b = edge;
+        }
+    }
+}
+
+void laplacian_filter_layer(int layer_id) {
+    Layer& layer = layers[layer_id];
+    
+    int layer_width = layer.pixels[0].size();
+    int layer_height = layer.pixels.size();
+
+    const int kernel[3][3] = {
+        {-1, -1, -1},
+        {-1,  8, -1},
+        {-1, -1, -1}
+    };
+
+    std::vector<std::vector<int>> laplacian_values(layer_height, std::vector<int>(layer_width, 0));
+
+    // First pass: compute Laplacian
+    for (int y = 1; y < layer_height - 1; y++) {
+        for (int x = 1; x < layer_width - 1; x++) {
+            int sum = 0;
+            for (int ky = -1; ky <= 1; ky++) {
+                for (int kx = -1; kx <= 1; kx++) {
+                    Pixel& p = layer.pixels[y + ky][x + kx];
+                    uint8_t gray = static_cast<uint8_t>((p.r + p.g + p.b) / 3);
+                    sum += gray * kernel[ky + 1][kx + 1];
+                }
+            }
+            laplacian_values[y][x] = sum;
+        }
+    }
+
+    // Second pass: apply the result
+    for (int y = 1; y < layer_height - 1; y++) {
+        for (int x = 1; x < layer_width - 1; x++) {
+            int raw = laplacian_values[y][x];
+            
+            // Amplify the result to make edges more visible
+            int amplified = raw * 3; // Multiply by 3 for stronger edges
+            
+            // Clamp the result to 0-255 range
+            uint8_t edge = static_cast<uint8_t>(std::max(0, std::min(255, amplified)));
+
+            Pixel& p = layer.pixels[y][x];
+            p.r = edge;
+            p.g = edge;
+            p.b = edge;
+        }
+    }
+}
+
+
+
+
+
+
+
 extern "C" {
 
     /**
@@ -362,107 +469,14 @@ extern "C" {
     }
 
     void edge_sobel(uint8_t* data, int width, int height, int* order, int orderSize, int layer_id) {
-        Layer& layer = layers[layer_id];
-    
-        int layer_width = layer.pixels[0].size();
-        int layer_height = layer.pixels.size();
-    
-        // Sobel kernels
-        const int Gx[3][3] = {
-            {-1, 0, 1},
-            {-2, 0, 2},
-            {-1, 0, 1}
-        };
-        const int Gy[3][3] = {
-            {1, 2, 1},
-            {0, 0, 0},
-            {-1, -2, -1}
-        };
-    
-        // First pass: compute magnitudes and find the max value
-        std::vector<int> magnitudes(layer_width * layer_height, 0);
-        int maxMag = 1; // Avoid division by zero
-    
-        for (int y = 1; y < layer_height - 1; y++) {
-            for (int x = 1; x < layer_width - 1; x++) {
-                int gx = 0, gy = 0;
-    
-                for (int ky = -1; ky <= 1; ky++) {
-                    for (int kx = -1; kx <= 1; kx++) {
-                        Pixel& p = layer.pixels[y + ky][x + kx];
-                        uint8_t gray = static_cast<uint8_t>((p.r + p.g + p.b) / 3);
-                        gx += gray * Gx[ky + 1][kx + 1];
-                        gy += gray * Gy[ky + 1][kx + 1];
-                    }
-                }
-    
-                int mag = static_cast<int>(std::sqrt(gx * gx + gy * gy));
-                magnitudes[y * layer_width + x] = mag;
-                if (mag > maxMag) maxMag = mag;
-            }
-        }
-    
-        // Second pass: normalize and write to layer
-        for (int y = 1; y < layer_height - 1; y++) {
-            for (int x = 1; x < layer_width - 1; x++) {
-                int mag = magnitudes[y * layer_width + x];
-                uint8_t edge = static_cast<uint8_t>((mag * 255) / maxMag);
-    
-                Pixel& p = layer.pixels[y][x];
-                p.r = p.g = p.b = edge;
-            }
-        }
+        edge_sobel_layer(layer_id);
     
         // Call merge_layers to update the output data
         merge_layers(data, width, height, order, orderSize);
     }     
 
     void laplacian_filter(uint8_t* data, int width, int height, int* order, int orderSize, int layer_id) {
-        Layer& layer = layers[layer_id];
-    
-        int layer_width = layer.pixels[0].size();
-        int layer_height = layer.pixels.size();
-    
-        const int kernel[3][3] = {
-            {-1, -1, -1},
-            {-1,  8, -1},
-            {-1, -1, -1}
-        };
-    
-        std::vector<std::vector<int>> laplacian_values(layer_height, std::vector<int>(layer_width, 0));
-    
-        // First pass: compute Laplacian
-        for (int y = 1; y < layer_height - 1; y++) {
-            for (int x = 1; x < layer_width - 1; x++) {
-                int sum = 0;
-                for (int ky = -1; ky <= 1; ky++) {
-                    for (int kx = -1; kx <= 1; kx++) {
-                        Pixel& p = layer.pixels[y + ky][x + kx];
-                        uint8_t gray = static_cast<uint8_t>((p.r + p.g + p.b) / 3);
-                        sum += gray * kernel[ky + 1][kx + 1];
-                    }
-                }
-                laplacian_values[y][x] = sum;
-            }
-        }
-    
-        // Second pass: apply the result
-        for (int y = 1; y < layer_height - 1; y++) {
-            for (int x = 1; x < layer_width - 1; x++) {
-                int raw = laplacian_values[y][x];
-                
-                // Amplify the result to make edges more visible
-                int amplified = raw * 3; // Multiply by 3 for stronger edges
-                
-                // Clamp the result to 0-255 range
-                uint8_t edge = static_cast<uint8_t>(std::max(0, std::min(255, amplified)));
-    
-                Pixel& p = layer.pixels[y][x];
-                p.r = edge;
-                p.g = edge;
-                p.b = edge;
-            }
-        }
+        laplacian_filter_layer(layer_id);
     
         // Call merge_layers to update the output data
         merge_layers(data, width, height, order, orderSize);
@@ -470,13 +484,16 @@ extern "C" {
 
     void edge_laplacian_of_gaussian(uint8_t* data, int width, int height, int* order, int orderSize, int layer_id, double sigma, int kernelSize) {
         // Step 1: convert to grayscale 
-        monochrome_itu(data, width, height, order, orderSize, layer_id);
+        monochrome_itu_layer(layer_id);
         
         // Step 2: apply Gaussian blur 
-        gaussian_blur(data, width, height, order, orderSize, layer_id, sigma, kernelSize);
+        gaussian_blur_layer(layer_id, sigma, kernelSize);
     
         // Step 3: apply Laplacian filter
-        laplacian_filter(data, width, height, order, orderSize, layer_id);
+        laplacian_filter_layer(layer_id);
+
+        // Call merge_layers to update the output data
+        merge_layers(data, width, height, order, orderSize);
     }
 
     // Helper function to check if two pixels are within a threshold
