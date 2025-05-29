@@ -143,8 +143,4 @@ https://www.figma.com/blog/speeding-up-build-times/
 
 # Known bugs
 
-## TO CHANGE 
-- Break up functions in C++ into smaller functions 
-- Applying kernel can be a generic function 
-- Pipeline LoG function 
-- Change vector to array in layer.h 
+- Browser sometimes refresh itself, losing all data 
