@@ -84,7 +84,7 @@ extern "C" {
         // Iterate from top layer down to bottom layer
         for (int i = orderSize - 1; i >= 0; --i) {
             int id = order[i];
-            Layer layer = layers[id];
+            Layer& layer = layers[id];
     
             int h = layer.pixels.size();
             int w = layer.pixels[0].size();
@@ -134,7 +134,7 @@ extern "C" {
     }    
 
     void monochrome_average(uint8_t* data, int width, int height, int* order, int orderSize, int layer_id) {
-        Layer layer = layers[layer_id]; 
+        Layer& layer = layers[layer_id]; 
     
         int layer_width = layer.pixels[0].size();
         int layer_height = layer.pixels.size();
@@ -165,7 +165,7 @@ extern "C" {
     }
 
     void monochrome_luminosity(uint8_t* data, int width, int height, int* order, int orderSize, int layer_id) {
-        Layer layer = layers[layer_id]; 
+        Layer& layer = layers[layer_id]; 
     
         int layer_width = layer.pixels[0].size();
         int layer_height = layer.pixels.size();
@@ -196,7 +196,7 @@ extern "C" {
     }
     
     void monochrome_lightness(uint8_t* data, int width, int height, int* order, int orderSize, int layer_id) {
-        Layer layer = layers[layer_id]; 
+        Layer& layer = layers[layer_id]; 
     
         int layer_width = layer.pixels[0].size();
         int layer_height = layer.pixels.size();
@@ -227,7 +227,7 @@ extern "C" {
     }
     
     void monochrome_itu(uint8_t* data, int width, int height, int* order, int orderSize, int layer_id) {
-        Layer layer = layers[layer_id]; 
+        Layer& layer = layers[layer_id]; 
     
         int layer_width = layer.pixels[0].size();
         int layer_height = layer.pixels.size();
@@ -276,7 +276,7 @@ extern "C" {
         for (double& k : kernel) k /= sum;
     
         // Get the specific layer 
-        Layer layer = layers[layer_id];
+        Layer& layer = layers[layer_id];
     
         int layer_width = layer.pixels[0].size();
         int layer_height = layer.pixels.size();
@@ -342,7 +342,7 @@ extern "C" {
     }
 
     void edge_sobel(uint8_t* data, int width, int height, int* order, int orderSize, int layer_id) {
-        Layer layer = layers[layer_id];
+        Layer& layer = layers[layer_id];
     
         int layer_width = layer.pixels[0].size();
         int layer_height = layer.pixels.size();
@@ -398,7 +398,7 @@ extern "C" {
     }     
 
     void laplacian_filter(uint8_t* data, int width, int height, int* order, int orderSize, int layer_id) {
-        Layer layer = layers[layer_id];
+        Layer& layer = layers[layer_id];
     
         int layer_width = layer.pixels[0].size();
         int layer_height = layer.pixels.size();
@@ -484,7 +484,7 @@ extern "C" {
     void bucket_fill(uint8_t* output, int width, int height, int* order, int orderSize,
                      int layer_id, int x, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a,
                      float error_threshold) {
-        Layer layer = layers[layer_id]; 
+        Layer& layer = layers[layer_id]; 
 
         int layer_width = layer.pixels[0].size();
         int layer_height = layer.pixels.size();
