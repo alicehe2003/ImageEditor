@@ -17,8 +17,13 @@ public:
 
 class Layer {
 public: 
+    // id = -1 is invalid 
     int id; 
     std::vector<std::vector<Pixel>> pixels; 
 
+    // Default constructor
+    Layer() : id(-1) {}
+
+    // Parameterized constructor
     Layer(int id) : id(id) {}
 }; 

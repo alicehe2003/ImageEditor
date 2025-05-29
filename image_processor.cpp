@@ -11,7 +11,7 @@
 #include <cmath>
 
 // Cache of layers 
-std::unordered_map<int, Layer*> layers;
+std::unordered_map<int, Layer> layers;
 
 extern "C" {
 
@@ -25,8 +25,8 @@ extern "C" {
      */
 
     void data_to_layer(uint8_t* data, int width, int height, int id) {
-        Layer* layer = new Layer(id);
-        layer->pixels.resize(height, std::vector<Pixel>(width)); 
+        Layer layer(id);
+        layer.pixels.resize(height, std::vector<Pixel>(width)); 
 
         // Current x, y position in the image 
         int x = 0, y = 0;
@@ -40,7 +40,7 @@ extern "C" {
             uint8_t a = data[i + 3];
 
             // Create a new pixel and assign it to the layer 
-            layer->pixels[y][x] = Pixel(r, g, b, a);
+            layer.pixels[y][x] = Pixel(r, g, b, a);
 
             // Move to the next pixel 
             x++;
@@ -84,11 +84,10 @@ extern "C" {
         // Iterate from top layer down to bottom layer
         for (int i = orderSize - 1; i >= 0; --i) {
             int id = order[i];
-            Layer* layer = layers[id];
-            if (!layer) continue;
+            Layer layer = layers[id];
     
-            int h = layer->pixels.size();
-            int w = layer->pixels[0].size();
+            int h = layer.pixels.size();
+            int w = layer.pixels[0].size();
     
             for (int y = 0; y < h; ++y) {
                 for (int x = 0; x < w; ++x) {
@@ -98,7 +97,7 @@ extern "C" {
                     // If pixel position is not in pixelPositions set, skip it
                     if (pixelPositions.find({x, y}) == pixelPositions.end()) continue;
 
-                    Pixel& p = layer->pixels[y][x];
+                    Pixel& p = layer.pixels[y][x];
                     if (x >= width || y >= height) continue;
     
                     int idx = (y * width + x) * 4;
@@ -135,16 +134,15 @@ extern "C" {
     }    
 
     void monochrome_average(uint8_t* data, int width, int height, int* order, int orderSize, int layer_id) {
-        Layer* layer = layers[layer_id]; 
-        if (!layer) return; // Layer not found
+        Layer layer = layers[layer_id]; 
     
-        int layer_width = layer->pixels[0].size();
-        int layer_height = layer->pixels.size();
+        int layer_width = layer.pixels[0].size();
+        int layer_height = layer.pixels.size();
         
         for (int y = 0; y < layer_height; y++) {
             for (int x = 0; x < layer_width; x++) {
                 // Get the Pixel from layer's pixel grid 
-                Pixel& p = layer->pixels[y][x]; 
+                Pixel& p = layer.pixels[y][x]; 
     
                 uint8_t r = p.r;
                 uint8_t g = p.g;
@@ -167,16 +165,15 @@ extern "C" {
     }
 
     void monochrome_luminosity(uint8_t* data, int width, int height, int* order, int orderSize, int layer_id) {
-        Layer* layer = layers[layer_id]; 
-        if (!layer) return; // Layer not found
+        Layer layer = layers[layer_id]; 
     
-        int layer_width = layer->pixels[0].size();
-        int layer_height = layer->pixels.size();
+        int layer_width = layer.pixels[0].size();
+        int layer_height = layer.pixels.size();
         
         for (int y = 0; y < layer_height; y++) {
             for (int x = 0; x < layer_width; x++) {
                 // Get the Pixel from layer's pixel grid 
-                Pixel& p = layer->pixels[y][x]; 
+                Pixel& p = layer.pixels[y][x]; 
     
                 uint8_t r = p.r;
                 uint8_t g = p.g;
@@ -199,16 +196,15 @@ extern "C" {
     }
     
     void monochrome_lightness(uint8_t* data, int width, int height, int* order, int orderSize, int layer_id) {
-        Layer* layer = layers[layer_id]; 
-        if (!layer) return; // Layer not found
+        Layer layer = layers[layer_id]; 
     
-        int layer_width = layer->pixels[0].size();
-        int layer_height = layer->pixels.size();
+        int layer_width = layer.pixels[0].size();
+        int layer_height = layer.pixels.size();
         
         for (int y = 0; y < layer_height; y++) {
             for (int x = 0; x < layer_width; x++) {
                 // Get the Pixel from layer's pixel grid 
-                Pixel& p = layer->pixels[y][x]; 
+                Pixel& p = layer.pixels[y][x]; 
     
                 uint8_t r = p.r;
                 uint8_t g = p.g;
@@ -231,16 +227,15 @@ extern "C" {
     }
     
     void monochrome_itu(uint8_t* data, int width, int height, int* order, int orderSize, int layer_id) {
-        Layer* layer = layers[layer_id]; 
-        if (!layer) return; // Layer not found
+        Layer layer = layers[layer_id]; 
     
-        int layer_width = layer->pixels[0].size();
-        int layer_height = layer->pixels.size();
+        int layer_width = layer.pixels[0].size();
+        int layer_height = layer.pixels.size();
         
         for (int y = 0; y < layer_height; y++) {
             for (int x = 0; x < layer_width; x++) {
                 // Get the Pixel from layer's pixel grid 
-                Pixel& p = layer->pixels[y][x]; 
+                Pixel& p = layer.pixels[y][x]; 
     
                 uint8_t r = p.r;
                 uint8_t g = p.g;
@@ -281,11 +276,10 @@ extern "C" {
         for (double& k : kernel) k /= sum;
     
         // Get the specific layer 
-        Layer* layer = layers[layer_id];
-        if (!layer) return; // Layer not found
+        Layer layer = layers[layer_id];
     
-        int layer_width = layer->pixels[0].size();
-        int layer_height = layer->pixels.size();
+        int layer_width = layer.pixels[0].size();
+        int layer_height = layer.pixels.size();
     
         // Create temporary buffer for the blurred image 
         std::vector<uint8_t> temp(layer_width * layer_height * 4);
@@ -298,7 +292,7 @@ extern "C" {
                 for (int k = -halfKernel; k <= halfKernel; k++) {
                     int sampleX = std::clamp(x + k, 0, layer_width - 1);
     
-                    Pixel& p = layer->pixels[y][sampleX];
+                    Pixel& p = layer.pixels[y][sampleX];
 
                     r += p.r * kernel[k + halfKernel];
                     g += p.g * kernel[k + halfKernel];
@@ -330,7 +324,7 @@ extern "C" {
                 }
     
                 // Update the pixel in the layer
-                Pixel& p = layer->pixels[y][x];
+                Pixel& p = layer.pixels[y][x];
                 p.r = static_cast<uint8_t>(std::clamp(static_cast<int>(r), 0, 255));
                 p.g = static_cast<uint8_t>(std::clamp(static_cast<int>(g), 0, 255));
                 p.b = static_cast<uint8_t>(std::clamp(static_cast<int>(b), 0, 255));
@@ -348,11 +342,10 @@ extern "C" {
     }
 
     void edge_sobel(uint8_t* data, int width, int height, int* order, int orderSize, int layer_id) {
-        Layer* layer = layers[layer_id];
-        if (!layer) return;
+        Layer layer = layers[layer_id];
     
-        int layer_width = layer->pixels[0].size();
-        int layer_height = layer->pixels.size();
+        int layer_width = layer.pixels[0].size();
+        int layer_height = layer.pixels.size();
     
         // Sobel kernels
         const int Gx[3][3] = {
@@ -376,7 +369,7 @@ extern "C" {
     
                 for (int ky = -1; ky <= 1; ky++) {
                     for (int kx = -1; kx <= 1; kx++) {
-                        Pixel& p = layer->pixels[y + ky][x + kx];
+                        Pixel& p = layer.pixels[y + ky][x + kx];
                         uint8_t gray = static_cast<uint8_t>((p.r + p.g + p.b) / 3);
                         gx += gray * Gx[ky + 1][kx + 1];
                         gy += gray * Gy[ky + 1][kx + 1];
@@ -395,7 +388,7 @@ extern "C" {
                 int mag = magnitudes[y * layer_width + x];
                 uint8_t edge = static_cast<uint8_t>((mag * 255) / maxMag);
     
-                Pixel& p = layer->pixels[y][x];
+                Pixel& p = layer.pixels[y][x];
                 p.r = p.g = p.b = edge;
             }
         }
@@ -405,11 +398,10 @@ extern "C" {
     }     
 
     void laplacian_filter(uint8_t* data, int width, int height, int* order, int orderSize, int layer_id) {
-        Layer* layer = layers[layer_id];
-        if (!layer) return;
+        Layer layer = layers[layer_id];
     
-        int layer_width = layer->pixels[0].size();
-        int layer_height = layer->pixels.size();
+        int layer_width = layer.pixels[0].size();
+        int layer_height = layer.pixels.size();
     
         const int kernel[3][3] = {
             {-1, -1, -1},
@@ -425,7 +417,7 @@ extern "C" {
                 int sum = 0;
                 for (int ky = -1; ky <= 1; ky++) {
                     for (int kx = -1; kx <= 1; kx++) {
-                        Pixel& p = layer->pixels[y + ky][x + kx];
+                        Pixel& p = layer.pixels[y + ky][x + kx];
                         uint8_t gray = static_cast<uint8_t>((p.r + p.g + p.b) / 3);
                         sum += gray * kernel[ky + 1][kx + 1];
                     }
@@ -445,7 +437,7 @@ extern "C" {
                 // Clamp the result to 0-255 range
                 uint8_t edge = static_cast<uint8_t>(std::max(0, std::min(255, amplified)));
     
-                Pixel& p = layer->pixels[y][x];
+                Pixel& p = layer.pixels[y][x];
                 p.r = edge;
                 p.g = edge;
                 p.b = edge;
@@ -492,15 +484,14 @@ extern "C" {
     void bucket_fill(uint8_t* output, int width, int height, int* order, int orderSize,
                      int layer_id, int x, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a,
                      float error_threshold) {
-        Layer* layer = layers[layer_id]; 
-        if (!layer) return;
+        Layer layer = layers[layer_id]; 
 
-        int layer_width = layer->pixels[0].size();
-        int layer_height = layer->pixels.size();
+        int layer_width = layer.pixels[0].size();
+        int layer_height = layer.pixels.size();
 
         if (x < 0 || x >= layer_width || y < 0 || y >= layer_height) return;
 
-        Pixel& ref_pixel = layer->pixels[y][x];
+        Pixel& ref_pixel = layer.pixels[y][x];
 
         uint8_t ref_r = ref_pixel.r;
         uint8_t ref_g = ref_pixel.g;
@@ -519,7 +510,7 @@ extern "C" {
             q.pop();
 
             // Get current pixel
-            Pixel& cur_pixel = layer->pixels[cur_y][cur_x];
+            Pixel& cur_pixel = layer.pixels[cur_y][cur_x];
 
             // Check if the color matches the reference
             if (pixels_within_threshold(cur_pixel.r, cur_pixel.g, cur_pixel.b, cur_pixel.a,
