@@ -147,7 +147,6 @@ https://www.figma.com/blog/speeding-up-build-times/
 # Known bugs
 
 ## TO CHANGE 
-- Ownership - map to actual object instead of pointer 
 - Break up functions in C++ into smaller functions 
 - Applying kernel can be a generic function 
 - LoG updates layer 3 times instead of just 1 
