@@ -13,117 +13,48 @@
 // Cache of layers 
 std::unordered_map<int, Layer> layers;
 
-void monochrome_average_layer(int layer_id) {
-    Layer& layer = layers[layer_id]; 
-    
+/**
+ * Monochrome functions
+ * 
+ * Various methods to convert RGB pixels to grayscale.
+ */
+
+uint8_t grayscale_average(uint8_t r, uint8_t g, uint8_t b) {
+    return static_cast<uint8_t>((r + g + b) / 3);
+}
+
+uint8_t grayscale_luminosity(uint8_t r, uint8_t g, uint8_t b) {
+    return static_cast<uint8_t>(0.299 * r + 0.587 * g + 0.114 * b);
+}
+
+uint8_t grayscale_lightness(uint8_t r, uint8_t g, uint8_t b) {
+    return static_cast<uint8_t>((std::max({r, g, b}) + std::min({r, g, b})) / 2);
+}
+
+uint8_t grayscale_itu(uint8_t r, uint8_t g, uint8_t b) {
+    return static_cast<uint8_t>(0.2126 * r + 0.7152 * g + 0.0722 * b);
+}
+
+void apply_monochrome_filter(int layer_id, uint8_t(*grayscale_fn)(uint8_t, uint8_t, uint8_t)) {
+    Layer& layer = layers[layer_id];
     int layer_width = layer.pixels[0].size();
     int layer_height = layer.pixels.size();
-    
-    for (int y = 0; y < layer_height; y++) {
-        for (int x = 0; x < layer_width; x++) {
-            // Get the Pixel from layer's pixel grid 
-            Pixel& p = layer.pixels[y][x]; 
 
-            uint8_t r = p.r;
-            uint8_t g = p.g;
-            uint8_t b = p.b;
-            uint8_t a = p.a; // preserve the alpha channel
-
-            // Compute the simple average to get the grayscale value
-            uint8_t gray = static_cast<uint8_t>((r + g + b) / 3); 
-
-            // Write greyscale value to pixel 
-            p.r = gray;
-            p.g = gray;
-            p.b = gray;
-            p.a = a;
+    for (int y = 0; y < layer_height; ++y) {
+        for (int x = 0; x < layer_width; ++x) {
+            Pixel& p = layer.pixels[y][x];
+            uint8_t gray = grayscale_fn(p.r, p.g, p.b);
+            p.r = p.g = p.b = gray;
+            // p.a preserved
         }
     }
 }
 
-void monochrome_luminosity_layer(int layer_id) {
-    Layer& layer = layers[layer_id]; 
-
-    int layer_width = layer.pixels[0].size();
-    int layer_height = layer.pixels.size();
-    
-    for (int y = 0; y < layer_height; y++) {
-        for (int x = 0; x < layer_width; x++) {
-            // Get the Pixel from layer's pixel grid 
-            Pixel& p = layer.pixels[y][x]; 
-
-            uint8_t r = p.r;
-            uint8_t g = p.g;
-            uint8_t b = p.b;
-            uint8_t a = p.a; // preserve the alpha channel
-
-            // Compute grayscale value
-            uint8_t gray = static_cast<uint8_t>(0.299 * r + 0.587 * g + 0.114 * b);
-
-            // Write greyscale value to pixel
-            p.r = gray;
-            p.g = gray;
-            p.b = gray;
-            p.a = a;
-        }
-    }
-}
-
-void monochrome_lightness_layer(int layer_id) {
-    Layer& layer = layers[layer_id]; 
-    
-    int layer_width = layer.pixels[0].size();
-    int layer_height = layer.pixels.size();
-    
-    for (int y = 0; y < layer_height; y++) {
-        for (int x = 0; x < layer_width; x++) {
-            // Get the Pixel from layer's pixel grid 
-            Pixel& p = layer.pixels[y][x]; 
-
-            uint8_t r = p.r;
-            uint8_t g = p.g;
-            uint8_t b = p.b;
-            uint8_t a = p.a; // preserve the alpha channel
-
-            // Compute grayscale value
-            uint8_t gray = static_cast<uint8_t>((std::max({r, g, b}) + std::min({r, g, b})) / 2);
-
-            // Write greyscale value to pixel
-            p.r = gray;
-            p.g = gray;
-            p.b = gray;
-            p.a = a;
-        }
-    }
-}
-
-void monochrome_itu_layer(int layer_id) {
-    Layer& layer = layers[layer_id]; 
-    
-    int layer_width = layer.pixels[0].size();
-    int layer_height = layer.pixels.size();
-    
-    for (int y = 0; y < layer_height; y++) {
-        for (int x = 0; x < layer_width; x++) {
-            // Get the Pixel from layer's pixel grid 
-            Pixel& p = layer.pixels[y][x]; 
-
-            uint8_t r = p.r;
-            uint8_t g = p.g;
-            uint8_t b = p.b;
-            uint8_t a = p.a; // preserve the alpha channel
-
-            // Compute grayscale value
-            uint8_t gray = static_cast<uint8_t>(0.2126 * r + 0.7152 * g + 0.0722 * b);
-
-            // Write greyscale value to pixel
-            p.r = gray;
-            p.g = gray;
-            p.b = gray;
-            p.a = a;
-        }
-    }
-}
+/**
+ * Gaussian blur function 
+ * 
+ * This function applies a Gaussian blur to a specific layer in the image.
+ */
 
 void gaussian_blur_layer(int layer_id, double sigma, int kernelSize) {
     // Ensure kernelSize is odd for centering 
@@ -400,78 +331,6 @@ struct PositionHash {
     }
 };
 
-/**
- * Output is the buffer where the merged image will be stored.
- * Width and height are the max dimentions of an image on the canvas. 
- * Order is a list of layer IDs, from bottom to top. 
- * Order size is the number of layers in the order array.
- */
-void merge_layers(uint8_t* output, int width, int height, int* order, int orderSize) {
-    std::unordered_set<std::pair<int, int>, PositionHash> pixelPositions;
-    
-    // Initialize output to transparent black
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
-            int idx = (y * width + x) * 4;
-            output[idx] = output[idx + 1] = output[idx + 2] = output[idx + 3] = 0;
-
-            // Init pixel positions
-            pixelPositions.insert({x, y});
-        }
-    } 
-
-    // Iterate from top layer down to bottom layer
-    for (int i = orderSize - 1; i >= 0; --i) {
-        int id = order[i];
-        Layer& layer = layers[id];
-
-        int h = layer.pixels.size();
-        int w = layer.pixels[0].size();
-
-        for (int y = 0; y < h; ++y) {
-            for (int x = 0; x < w; ++x) {
-                // All pixels fully set, no more blending needed
-                if (pixelPositions.empty()) return;  
-
-                // If pixel position is not in pixelPositions set, skip it
-                if (pixelPositions.find({x, y}) == pixelPositions.end()) continue;
-
-                Pixel& p = layer.pixels[y][x];
-                if (x >= width || y >= height) continue;
-
-                int idx = (y * width + x) * 4;
-
-                float dstAlpha = output[idx + 3] / 255.0f;  // existing alpha in output
-                float srcAlpha = p.a / 255.0f;             // new layer alpha (destination in this case)
-
-                float outAlpha = dstAlpha + srcAlpha * (1 - dstAlpha);
-                if (outAlpha == 0) continue;
-
-                for (int c = 0; c < 3; ++c) {
-                    float dstColor = output[idx + c] / 255.0f;      // existing output color (source)
-                    float srcColor;
-                    // new pixel color (destination)
-                    switch (c) {
-                        case 0: srcColor = p.r / 255.0f; break;
-                        case 1: srcColor = p.g / 255.0f; break;
-                        case 2: srcColor = p.b / 255.0f; break;
-                        case 3: srcColor = p.a / 255.0f; break;
-                    }                                               
-                    float outColor = (dstColor * dstAlpha + srcColor * srcAlpha * (1 - dstAlpha)) / outAlpha;
-                    output[idx + c] = static_cast<uint8_t>(outColor * 255);
-                }
-
-                output[idx + 3] = static_cast<uint8_t>(outAlpha * 255);
-
-                // If alpha now fully opaque, remove pixel position from set
-                if (output[idx + 3] == 255) {
-                    pixelPositions.erase({x, y});
-                }
-            }
-        }
-    }
-}    
-
 extern "C" {
 
     /**
@@ -513,29 +372,101 @@ extern "C" {
         layers[id] = layer;
     }
 
+    /**
+     * Output is the buffer where the merged image will be stored.
+     * Width and height are the max dimentions of an image on the canvas. 
+     * Order is a list of layer IDs, from bottom to top. 
+     * Order size is the number of layers in the order array.
+     */
+    void merge_layers(uint8_t* output, int width, int height, int* order, int orderSize) {
+        std::unordered_set<std::pair<int, int>, PositionHash> pixelPositions;
+        
+        // Initialize output to transparent black
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                int idx = (y * width + x) * 4;
+                output[idx] = output[idx + 1] = output[idx + 2] = output[idx + 3] = 0;
+
+                // Init pixel positions
+                pixelPositions.insert({x, y});
+            }
+        } 
+
+        // Iterate from top layer down to bottom layer
+        for (int i = orderSize - 1; i >= 0; --i) {
+            int id = order[i];
+            Layer& layer = layers[id];
+
+            int h = layer.pixels.size();
+            int w = layer.pixels[0].size();
+
+            for (int y = 0; y < h; ++y) {
+                for (int x = 0; x < w; ++x) {
+                    // All pixels fully set, no more blending needed
+                    if (pixelPositions.empty()) return;  
+
+                    // If pixel position is not in pixelPositions set, skip it
+                    if (pixelPositions.find({x, y}) == pixelPositions.end()) continue;
+
+                    Pixel& p = layer.pixels[y][x];
+                    if (x >= width || y >= height) continue;
+
+                    int idx = (y * width + x) * 4;
+
+                    float dstAlpha = output[idx + 3] / 255.0f;  // existing alpha in output
+                    float srcAlpha = p.a / 255.0f;             // new layer alpha (destination in this case)
+
+                    float outAlpha = dstAlpha + srcAlpha * (1 - dstAlpha);
+                    if (outAlpha == 0) continue;
+
+                    for (int c = 0; c < 3; ++c) {
+                        float dstColor = output[idx + c] / 255.0f;      // existing output color (source)
+                        float srcColor;
+                        // new pixel color (destination)
+                        switch (c) {
+                            case 0: srcColor = p.r / 255.0f; break;
+                            case 1: srcColor = p.g / 255.0f; break;
+                            case 2: srcColor = p.b / 255.0f; break;
+                            case 3: srcColor = p.a / 255.0f; break;
+                        }                                               
+                        float outColor = (dstColor * dstAlpha + srcColor * srcAlpha * (1 - dstAlpha)) / outAlpha;
+                        output[idx + c] = static_cast<uint8_t>(outColor * 255);
+                    }
+
+                    output[idx + 3] = static_cast<uint8_t>(outAlpha * 255);
+
+                    // If alpha now fully opaque, remove pixel position from set
+                    if (output[idx + 3] == 255) {
+                        pixelPositions.erase({x, y});
+                    }
+                }
+            }
+        }
+    }    
+
     void monochrome_average(uint8_t* data, int width, int height, int* order, int orderSize, int layer_id) {
-        monochrome_average_layer(layer_id);
+        apply_monochrome_filter(layer_id, grayscale_average);
     
         // Call merge_layers to update the output data
         merge_layers(data, width, height, order, orderSize);
     }
 
     void monochrome_luminosity(uint8_t* data, int width, int height, int* order, int orderSize, int layer_id) {
-        monochrome_luminosity_layer(layer_id);
+        apply_monochrome_filter(layer_id, grayscale_luminosity);
     
         // Call merge_layers to update the output data
         merge_layers(data, width, height, order, orderSize);
     }
     
     void monochrome_lightness(uint8_t* data, int width, int height, int* order, int orderSize, int layer_id) {
-        monochrome_lightness_layer(layer_id);
+        apply_monochrome_filter(layer_id, grayscale_lightness);
     
         // Call merge_layers to update the output data
         merge_layers(data, width, height, order, orderSize);
     }
     
     void monochrome_itu(uint8_t* data, int width, int height, int* order, int orderSize, int layer_id) {
-        monochrome_itu_layer(layer_id); 
+        apply_monochrome_filter(layer_id, grayscale_itu);
     
         // Call merge_layers to update the output data
         merge_layers(data, width, height, order, orderSize);
@@ -569,7 +500,7 @@ extern "C" {
 
     void edge_laplacian_of_gaussian(uint8_t* data, int width, int height, int* order, int orderSize, int layer_id, double sigma, int kernelSize) {
         // Step 1: convert to grayscale 
-        monochrome_itu_layer(layer_id);
+        apply_monochrome_filter(layer_id, grayscale_itu);
         
         // Step 2: apply Gaussian blur 
         gaussian_blur_layer(layer_id, sigma, kernelSize);
