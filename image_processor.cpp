@@ -393,6 +393,85 @@ void bucket_fill_layer(int layer_id, int x, int y, uint8_t r, uint8_t g, uint8_t
     }
 }
 
+// Helper hash for 2D positions
+struct PositionHash {
+    std::size_t operator()(const std::pair<int, int>& pos) const {
+        return std::hash<int>()(pos.first) ^ (std::hash<int>()(pos.second) << 1);
+    }
+};
+
+/**
+ * Output is the buffer where the merged image will be stored.
+ * Width and height are the max dimentions of an image on the canvas. 
+ * Order is a list of layer IDs, from bottom to top. 
+ * Order size is the number of layers in the order array.
+ */
+void merge_layers(uint8_t* output, int width, int height, int* order, int orderSize) {
+    std::unordered_set<std::pair<int, int>, PositionHash> pixelPositions;
+    
+    // Initialize output to transparent black
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            int idx = (y * width + x) * 4;
+            output[idx] = output[idx + 1] = output[idx + 2] = output[idx + 3] = 0;
+
+            // Init pixel positions
+            pixelPositions.insert({x, y});
+        }
+    } 
+
+    // Iterate from top layer down to bottom layer
+    for (int i = orderSize - 1; i >= 0; --i) {
+        int id = order[i];
+        Layer& layer = layers[id];
+
+        int h = layer.pixels.size();
+        int w = layer.pixels[0].size();
+
+        for (int y = 0; y < h; ++y) {
+            for (int x = 0; x < w; ++x) {
+                // All pixels fully set, no more blending needed
+                if (pixelPositions.empty()) return;  
+
+                // If pixel position is not in pixelPositions set, skip it
+                if (pixelPositions.find({x, y}) == pixelPositions.end()) continue;
+
+                Pixel& p = layer.pixels[y][x];
+                if (x >= width || y >= height) continue;
+
+                int idx = (y * width + x) * 4;
+
+                float dstAlpha = output[idx + 3] / 255.0f;  // existing alpha in output
+                float srcAlpha = p.a / 255.0f;             // new layer alpha (destination in this case)
+
+                float outAlpha = dstAlpha + srcAlpha * (1 - dstAlpha);
+                if (outAlpha == 0) continue;
+
+                for (int c = 0; c < 3; ++c) {
+                    float dstColor = output[idx + c] / 255.0f;      // existing output color (source)
+                    float srcColor;
+                    // new pixel color (destination)
+                    switch (c) {
+                        case 0: srcColor = p.r / 255.0f; break;
+                        case 1: srcColor = p.g / 255.0f; break;
+                        case 2: srcColor = p.b / 255.0f; break;
+                        case 3: srcColor = p.a / 255.0f; break;
+                    }                                               
+                    float outColor = (dstColor * dstAlpha + srcColor * srcAlpha * (1 - dstAlpha)) / outAlpha;
+                    output[idx + c] = static_cast<uint8_t>(outColor * 255);
+                }
+
+                output[idx + 3] = static_cast<uint8_t>(outAlpha * 255);
+
+                // If alpha now fully opaque, remove pixel position from set
+                if (output[idx + 3] == 255) {
+                    pixelPositions.erase({x, y});
+                }
+            }
+        }
+    }
+}    
+
 extern "C" {
 
     /**
@@ -433,85 +512,6 @@ extern "C" {
         // Store the layer in the cache
         layers[id] = layer;
     }
-
-    // Helper hash for 2D positions
-    struct PositionHash {
-        std::size_t operator()(const std::pair<int, int>& pos) const {
-            return std::hash<int>()(pos.first) ^ (std::hash<int>()(pos.second) << 1);
-        }
-    };
-
-    /**
-     * Output is the buffer where the merged image will be stored.
-     * Width and height are the max dimentions of an image on the canvas. 
-     * Order is a list of layer IDs, from bottom to top. 
-     * Order size is the number of layers in the order array.
-     */
-    void merge_layers(uint8_t* output, int width, int height, int* order, int orderSize) {
-        std::unordered_set<std::pair<int, int>, PositionHash> pixelPositions;
-        
-        // Initialize output to transparent black
-        for (int y = 0; y < height; ++y) {
-            for (int x = 0; x < width; ++x) {
-                int idx = (y * width + x) * 4;
-                output[idx] = output[idx + 1] = output[idx + 2] = output[idx + 3] = 0;
-
-                // Init pixel positions
-                pixelPositions.insert({x, y});
-            }
-        } 
-    
-        // Iterate from top layer down to bottom layer
-        for (int i = orderSize - 1; i >= 0; --i) {
-            int id = order[i];
-            Layer& layer = layers[id];
-    
-            int h = layer.pixels.size();
-            int w = layer.pixels[0].size();
-    
-            for (int y = 0; y < h; ++y) {
-                for (int x = 0; x < w; ++x) {
-                    // All pixels fully set, no more blending needed
-                    if (pixelPositions.empty()) return;  
-
-                    // If pixel position is not in pixelPositions set, skip it
-                    if (pixelPositions.find({x, y}) == pixelPositions.end()) continue;
-
-                    Pixel& p = layer.pixels[y][x];
-                    if (x >= width || y >= height) continue;
-    
-                    int idx = (y * width + x) * 4;
-    
-                    float dstAlpha = output[idx + 3] / 255.0f;  // existing alpha in output
-                    float srcAlpha = p.a / 255.0f;             // new layer alpha (destination in this case)
-    
-                    float outAlpha = dstAlpha + srcAlpha * (1 - dstAlpha);
-                    if (outAlpha == 0) continue;
-    
-                    for (int c = 0; c < 3; ++c) {
-                        float dstColor = output[idx + c] / 255.0f;      // existing output color (source)
-                        float srcColor;
-                        // new pixel color (destination)
-                        switch (c) {
-                            case 0: srcColor = p.r / 255.0f; break;
-                            case 1: srcColor = p.g / 255.0f; break;
-                            case 2: srcColor = p.b / 255.0f; break;
-                            case 3: srcColor = p.a / 255.0f; break;
-                        }                                               
-                        float outColor = (dstColor * dstAlpha + srcColor * srcAlpha * (1 - dstAlpha)) / outAlpha;
-                        output[idx + c] = static_cast<uint8_t>(outColor * 255);
-                    }
-    
-                    output[idx + 3] = static_cast<uint8_t>(outAlpha * 255);
-
-                    // If alpha now fully opaque, remove pixel position from set
-                    if (output[idx + 3] == 255) {
-                        pixelPositions.erase({x, y});
-                    }
-                }
-            }
-        }
-    }    
 
     void monochrome_average(uint8_t* data, int width, int height, int* order, int orderSize, int layer_id) {
         monochrome_average_layer(layer_id);

@@ -15,7 +15,7 @@ Run the following in the command line:
   -o image_processor.js \
   -s MODULARIZE=1 \
   -s 'EXPORT_NAME="Module"' \
-  -s EXPORTED_FUNCTIONS='["_monochrome_average", "_monochrome_luminosity", "_monochrome_lightness", "_monochrome_itu", "_gaussian_blur", "_edge_sobel", "_edge_laplacian_of_gaussian", "_data_to_layer", "_merge_layers", "_bucket_fill", "_malloc", "_free"]' \
+  -s EXPORTED_FUNCTIONS='["_monochrome_average", "_monochrome_luminosity", "_monochrome_lightness", "_monochrome_itu", "_gaussian_blur", "_edge_sobel", "_edge_laplacian_of_gaussian", "_data_to_layer", "_bucket_fill", "_malloc", "_free"]' \
   -s EXPORTED_RUNTIME_METHODS='["ccall", "cwrap", "HEAPU8"]' \
   -s ALLOW_MEMORY_GROWTH=1 \
   -O2` 
@@ -146,6 +146,5 @@ https://www.figma.com/blog/speeding-up-build-times/
 ## TO CHANGE 
 - Break up functions in C++ into smaller functions 
 - Applying kernel can be a generic function 
-- LoG updates layer 3 times instead of just 1 
 - Pipeline LoG function 
 - Change vector to array in layer.h 
