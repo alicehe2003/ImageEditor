@@ -132,6 +132,10 @@ void gaussian_blur_layer(int layer_id, double sigma, int kernelSize) {
     }
 }
 
+/**
+ * Edge detection options 
+ */
+
 void edge_sobel_layer(int layer_id) {
     Layer& layer = layers[layer_id];
 
@@ -233,6 +237,10 @@ void laplacian_filter_layer(int layer_id) {
     }
 }
 
+/**
+ * Bucket fill tool 
+ */
+
 // Helper function to check if two pixels are within a threshold
 bool pixels_within_threshold(uint8_t r1, uint8_t g1, uint8_t b1, uint8_t a1,
     uint8_t r2, uint8_t g2, uint8_t b2, uint8_t a2,
@@ -330,6 +338,10 @@ struct PositionHash {
         return std::hash<int>()(pos.first) ^ (std::hash<int>()(pos.second) << 1);
     }
 };
+
+/**
+ * Exported function APIs 
+ */
 
 extern "C" {
 
