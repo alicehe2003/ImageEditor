@@ -56,7 +56,14 @@ In order to optimize for workloads with a large number of layers, this function 
 
 In the worst case, every pixel of every layer is operated on. This would be equivalent to the brute force method. However, when there are a lot of layers, and the top few layers dominate all pixel information of the canvas, the algorithm allows for early termination as all dominating pixel information has already been processed. That is, all pixels on lower levels (that are covered by the top layers) do not have to be processed at all. 
 
+An alternative proposed implementation that does NOT work as well: 
 
+1. For each pixel location (x,y) in the image, calculate its final colour layer by layer, and from top to bottom. 
+2. Move on to the next pixel early if the current colour has alpha = 255. 
+
+This method has the same time completity, but constant space complexity as it does not use a set to store the not-fully-processed pixel locations. 
+
+However, from testing, this method has significantly worse actual runtime. This is likely because pixels in the same layer are stored consecutively in memory. Jumping from layer to layer causes significantly more cache misses, requiring the same layer to be retrieved multiple times (up to x * y times). This destroys the CPU cache efficiency. 
 
 # Current features 
 
@@ -140,7 +147,6 @@ https://www.figma.com/blog/speeding-up-build-times/
 # Known bugs
 
 ## TO CHANGE 
-- Iterate through x y pixels instead in merge layers function
 - Ownership - map to actual object instead of pointer 
 - Break up functions in C++ into smaller functions 
 - Applying kernel can be a generic function 
