@@ -97,7 +97,7 @@ Users are able to select a desired colour (RGBA, hex, or colour wheel), input an
 
 The error bound e between 0 and 1 indicates how "different" a pixel to be filled can be compared to the colour of the pixel selected. e = 0 indicates that the two pixels have identical colour, while e = 1 indicates that they are somewhat different. Please see implementation of `pixels_within_threshold` for details on error bound calculation. 
 
-# Additional functionalities and TODOs 
+# Additional functionalities 
 
 ## Edge detection 
 
@@ -118,8 +118,15 @@ This method is accurate, clean, and efficient.
 
 ## Revert to original image 
 
-## Image blending 
+For each unmerged layer, reverting it converts it to its original uploaded image. For merged layers, reverting it converts it to all of its original uploaded image, shown in multiple layers. 
 
+## Merge layers 
+
+Select two or more layers, and click the merge button to merge them into a single layer. The new layer will have the layer id of the lowest layer. 
+
+## Reorder layers 
+
+Drag and drop layers to reorder them, with each layer retaining its layer id information. 
 
 ## TODO 
 
