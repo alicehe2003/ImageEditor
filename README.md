@@ -128,6 +128,10 @@ Select two or more layers, and click the merge button to merge them into a singl
 
 Drag and drop layers to reorder them, with each layer retaining its layer id information. 
 
+## Name layers and edit layer title 
+
+Give each layer a user-defined name, or rename layers. 
+
 ## TODO 
 
 - Explain the sigma and kernel for Gaussian Blur 
