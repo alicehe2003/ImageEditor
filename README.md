@@ -132,6 +132,18 @@ Drag and drop layers to reorder them, with each layer retaining its layer id inf
 
 Give each layer a user-defined name, or rename layers. 
 
+## Save image 
+
+Give users the option to save the image as a PNG or JPEG. 
+
+## Information 
+
+On click of the information symbol beside each tool, users will be shown a description of what the tool does. 
+
+## Movable images 
+
+Images can be moved around on the canvas area. 
+
 ## TODO 
 
 - Explain the sigma and kernel for Gaussian Blur 
