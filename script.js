@@ -341,6 +341,41 @@ Module().then((mod) => {
     wasmModule._free(outputPtr);
     wasmModule._free(orderPtr);
   }
-  
+
+  // Save image 
+  const saveToggleBtn = document.getElementById("save-toggle");
+  const dropdown = document.getElementById("format-dropdown");
+
+  saveToggleBtn.addEventListener("click", () => {
+    dropdown.classList.toggle("hidden");
+  });
+
+  // Handle format click
+  dropdown.addEventListener("click", (e) => {
+    if (e.target.classList.contains("format-option")) {
+      const format = e.target.dataset.format;
+      // Selects correct file extension to match chosen format
+      const extension = format === "image/png" ? "png" : "jpg";
+      // Captures current contents of canvas and converts to base64 encoded image
+      const dataURL = canvas.toDataURL(format);
+
+      // Temp <a> anchor/link created 
+      const link = document.createElement("a");
+      link.href = dataURL;
+      // Tells browser to download the file instead of navigating to it
+      link.download = `canvas_output.${extension}`;
+      // Triggers the download 
+      link.click();
+
+      dropdown.classList.add("hidden"); // hide after save
+    }
+  });
+
+  // Hide dropdown if user clicks elsewhere
+  document.addEventListener("click", (e) => {
+    if (!document.getElementById("save-controls").contains(e.target)) {
+      dropdown.classList.add("hidden");
+    }
+  });
 
 });

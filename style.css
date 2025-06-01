@@ -21,6 +21,7 @@ html, body {
     width: 100%; 
     display: flex;
     flex-direction: column;
+    font-family: 'Inter', sans-serif;
 }
 
 body {
@@ -36,10 +37,13 @@ body {
     margin: 0; 
     padding: 10px; 
     box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.2); 
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 /* Add image button */
-.custom-upload {
+.custom-upload, .headers button {
     display: inline-block;
     background-color: #39B3FD;
     color: white;
@@ -53,7 +57,7 @@ body {
     transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
-.custom-upload:hover {
+.custom-upload:hover, .headers button:hover {
     background-color: #28a2ed;
 }
 
@@ -241,5 +245,40 @@ body {
     font-size: 15px;
     font-weight: 500;
     text-align: center;
+}
+
+/* Save dropdown styling */
+
+#save-controls {
+    position: relative;
+    display: inline-block;
+    font-size: 14px; 
+}
+  
+#format-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: white;
+    z-index: 10;
+    cursor: pointer;
+    width: 120px;
+}
+
+.format-option {
+    padding: 8px 12px;
+    border-bottom: 1px solid #5E6973;
+}
+
+.format-option:last-child {
+    border-bottom: none;
+}
+
+.format-option:hover {
+    background-color: #e9eef3;
+}
+
+.hidden {
+    display: none;
 }
 
