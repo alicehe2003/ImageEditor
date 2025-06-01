@@ -290,8 +290,11 @@ Module().then((mod) => {
   // Attach event listener for when user clicks on the canvas to use bucket tool 
   canvas.addEventListener("click", (e) => {
     const rect = canvas.getBoundingClientRect();
-    const x = Math.floor(e.clientX - rect.left);
-    const y = Math.floor(e.clientY - rect.top);
+    const scaleX = canvas.width / canvas.clientWidth;
+    const scaleY = canvas.height / canvas.clientHeight;
+
+    const x = Math.floor((e.clientX - rect.left) * scaleX);
+    const y = Math.floor((e.clientY - rect.top) * scaleY);
     applyBucketFill(x, y);
   });
   

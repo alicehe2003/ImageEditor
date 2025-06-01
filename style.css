@@ -21,7 +21,10 @@ html, body {
     width: 100%; 
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+}
+
+body {
+    flex-grow: 1; 
 }
 
 /* 
@@ -65,7 +68,9 @@ html, body {
     flex-direction: row;
     background-color: #1E262B;
     height: 100%; 
-    width: vw; 
+    width: 100vw; 
+    flex-grow: 1; 
+    overflow: hidden; 
 }
 
 /* Bottom section contaning filters and tools */
@@ -75,57 +80,64 @@ html, body {
     background-color: #2D363E;
 }
 
-/* LAYERING */
-
+/* Layers */
 #layer-panel {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    max-width: 200px;
-    background: #f0f0f0;
-    border: 1px solid #ccc;
-    overflow-y: auto;
-    margin-bottom: 20px;
+    min-width: 200px;
+    width: 200px;
+    height: 100%;
+    background-color: #101519;
+    overflow-y: scroll;
+    box-shadow: 2px 0px 4px 0px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+}
+
+#layer-panel h3 {
+    color: white;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    padding: 10px;
+    margin: 0;
+    text-align: center;
+    border-bottom: 1px solid #3B4650;
 }
 
 #layer-list {
     list-style: none;
     padding: 0;
     margin: 0;
+    flex-grow: 1;
 }
 
+/* Each layer item */
 #layer-list li {
     padding: 5px;
-    border: 1px solid #aaa;
-    margin: 5px;
-    cursor: move;
-    background-color: white;
-} 
-
-.layer-item {
-    padding: 10px;
-    margin: 5px 0;
-    border: 2px solid transparent;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    background-color: #f5f5f5;
-}
-
-.layer-item:hover {
-    background-color: #e0e0e0;
-    border-color: #ccc;
-}
-
-.layer-item.selected {
-    background-color: #007bff;
+    border-bottom: 1px solid #3B4650;
+    background-color: #101519;
     color: white;
-    border-color: #0056b3;
-    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* Selected layer style */
+#layer-list li.selected {
+    background-color: #5E6973;
+}
+
+/* Image thumbnails inside layers */
 .layer-item img {
     display: block;
     margin: 0 auto 5px auto;
     border-radius: 3px;
+    max-width: 80px;
+    height: auto;
+}
+
+/* Canvas */
+
+.canvas {
+    background-color: white;
 }
