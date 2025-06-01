@@ -166,3 +166,11 @@ body {
     font-weight: 500;
     text-align: center;
 }
+
+.bottom button {
+    background-color: #5E6973;
+    border: 0; 
+    color: white; 
+    padding: 5px 15px 5px 15px; 
+    margin: 2px; 
+}
