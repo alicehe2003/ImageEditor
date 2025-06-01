@@ -19,6 +19,9 @@ html, body {
     padding: 0; 
     height: 100%; 
     width: 100%; 
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
 }
 
 /* 
@@ -54,6 +57,18 @@ html, body {
 /* Hide the actual file input */
 #upload {
     display: none;
+}
+
+/* Middle section containing layers and canvas */
+.middle {
+    display: flex;
+    flex-direction: row;
+}
+
+/* Bottom section contaning filters and tools */
+.bottom {
+    display: flex;
+    flex-direction: row;
 }
 
 /* LAYERING */
