@@ -53,22 +53,25 @@
   
       <div class="methods">
         <class div="Sobel_set">
-          <button id="edge_sobel">Sobel Method</button>
+          <h4>Sobel Method</h4>
+          <button id="edge_sobel">Apply</button>
         </class>
   
         <div class="LoG_set">
+          <h4>Laplacian of Gaussian</h4>
+
           <div id="log_controls">
             <div class="set">
-              <label for="log_sigma">LoG Sigma (0–50):</label>
+              <label for="log_sigma">Sigma (0–50):</label>
             <input type="number" id="log_sigma" min="0" max="50" value="2" />
             </div>
         
             <div class="set">
-              <label for="log_kernel">LoG Kernel Size (odd, 1–50):</label>
+              <label for="log_kernel">Kernel Size (odd, 1–50):</label>
               <input type="number" id="log_kernel" min="1" max="50" step="1" value="5" />
             </div>
         
-            <button id="edge_laplacian_of_gaussian">Laplacian of Gaussian</button>
+            <button id="edge_laplacian_of_gaussian">Apply</button>
           </div>
         </div>
       </div>
@@ -77,17 +80,25 @@
     <div class="bucket_tool">
       <h3>Bucket Fill Tool</h3>
       
-      <label for="hex">HEX:</label>
-      <input type="text" id="hex" value="#ff0000"><br>
+      <div class="set">
+        <label for="hex">HEX:</label>
+        <input type="text" id="hex" value="#ff0000"><br>
+      </div>
   
-      <label for="rgba">RGBA:</label>
-      <input type="text" id="rgba" value="rgba(255, 0, 0, 1)"><br>
+      <div class="set">
+        <label for="rgba">RGBA:</label>
+        <input type="text" id="rgba" value="rgba(255, 0, 0, 1)"><br>
+      </div>
   
-      <label for="color">Pick a color:</label>
-      <input type="color" id="color" value="#ff0000">
+      <div class="set">
+        <label for="color">Pick a color:</label>
+        <input type="color" id="color" value="#ff0000">
+      </div>
   
-      <label for="error-threshold">Error Threshold (0 to 1):</label>
-      <input type="number" id="error-threshold" min="0" max="1" step="0.01" value="0.2">
+      <div class="set">
+        <label for="error-threshold">Error Threshold (0 to 1):</label>
+        <input type="number" id="error-threshold" min="0" max="1" step="0.01" value="0.2">
+      </div>
   
       <script>
         const color = document.getElementById("color");
