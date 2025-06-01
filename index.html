@@ -22,7 +22,7 @@
 
   <div class="bottom">
     <div class="monochrome_options">
-      <h3>Monochrome options</h3>
+      <h3>Monochrome</h3>
   
       <button id="monochrome_average">Average Method</button>
       <button id="monochrome_luminosity">Luminosity Method</button>
@@ -33,28 +33,44 @@
     <div class="blur_options">
       <h3>Gaussian Blur</h3>
   
-      <label for="sigma">Sigma (0–50):</label>
-      <input type="number" id="sigma" min="0" max="50" value="2">
+      <div class="parameters">
+        <div class="set">
+          <label for="sigma">Sigma (0–50):</label>
+          <input type="number" id="sigma" min="0" max="50" value="2">
+        </div>
+    
+        <div class="set">
+          <label for="kernel">Kernel Size (odd, 1–50):</label>
+          <input type="number" id="kernel" min="1" max="50" step="1" value="5">
+        </div>
+      </div>
   
-      <label for="kernel">Kernel Size (odd, 1–50):</label>
-      <input type="number" id="kernel" min="1" max="50" step="1" value="5">
-  
-      <button id="blur_gaussian">Gaussian Blur</button>
+      <button id="blur_gaussian">Apply</button>
     </div>
   
     <div class="edge_options">
-      <h3>Edge detection options</h3>
+      <h3>Edge Detection</h3>
   
-      <button id="edge_sobel">Sobel Method</button>
+      <div class="methods">
+        <class div="Sobel_set">
+          <button id="edge_sobel">Sobel Method</button>
+        </class>
   
-      <div id="log_controls">
-        <label for="log_sigma">LoG Sigma (0–50):</label>
-        <input type="number" id="log_sigma" min="0" max="50" value="2" />
-    
-        <label for="log_kernel">LoG Kernel Size (odd, 1–50):</label>
-        <input type="number" id="log_kernel" min="1" max="50" step="1" value="5" />
-    
-        <button id="edge_laplacian_of_gaussian">Laplacian of Gaussian</button>
+        <div class="LoG_set">
+          <div id="log_controls">
+            <div class="set">
+              <label for="log_sigma">LoG Sigma (0–50):</label>
+            <input type="number" id="log_sigma" min="0" max="50" value="2" />
+            </div>
+        
+            <div class="set">
+              <label for="log_kernel">LoG Kernel Size (odd, 1–50):</label>
+              <input type="number" id="log_kernel" min="1" max="50" step="1" value="5" />
+            </div>
+        
+            <button id="edge_laplacian_of_gaussian">Laplacian of Gaussian</button>
+          </div>
+        </div>
       </div>
     </div>
   

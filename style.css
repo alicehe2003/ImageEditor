@@ -144,7 +144,7 @@ body {
     justify-content: center;
     align-items: top;
     background-color: #2D363E;
-    height: 150px; 
+    height: 200px; 
     color: white; 
     font-family: 'Inter', sans-serif;
     font-size: 12px; 
@@ -157,6 +157,7 @@ body {
 
 .bottom > * {
     margin: 0px 10px 0px 10px; 
+    padding-right: 10px; 
 }
 
 .bottom h3 {
@@ -172,5 +173,63 @@ body {
     border: 0; 
     color: white; 
     padding: 5px 15px 5px 15px; 
+    margin-bottom: 2px; 
+    margin-top: 2px; 
+}
+
+
+/* Growth rate, may change as more functionalities are added */
+.monochrome_options {
+    flex: 1.2; 
+}
+
+.blur_options {
+    flex: 1; 
+}
+
+.edge_options {
+    flex: 1.5; 
+}
+
+.bucket_tool {
+    flex: 1; 
+}
+
+/* Gaussian blur */
+.blur_options {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.bottom input[type="number"] {
+    background-color: #B2C6D7;
+    border: 1px solid white;
+    color: black; 
+    padding: 2px;  
+    border-radius: 4px; 
     margin: 2px; 
+}
+
+.methods {
+    display: flex;
+    flex-direction: row; 
+    justify-content: flex-start;
+    align-items: flex-start;
+}
+
+.edge_options {
+    min-width: 250px;
+}
+
+.methods > * {
+    height: 100%; 
+}
+
+/* Add vertical separator lines between children of .methods */
+.methods > *:not(:last-child) {
+    border-right: 1px solid #5E6973;
+    padding-right: 10px;  
+    margin-right: 10px;   
+    height: 145px; 
 }
