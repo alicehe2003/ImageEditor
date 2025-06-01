@@ -63,12 +63,16 @@ html, body {
 .middle {
     display: flex;
     flex-direction: row;
+    background-color: #1E262B;
+    height: 100%; 
+    width: vw; 
 }
 
 /* Bottom section contaning filters and tools */
 .bottom {
     display: flex;
     flex-direction: row;
+    background-color: #2D363E;
 }
 
 /* LAYERING */
