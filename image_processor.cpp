@@ -531,12 +531,36 @@ extern "C" {
      * If the pixel in the connected region is within the error threshold of the reference pixel,
      * it will be filled with the new color (r, g, b, a). 
      */
-    void bucket_fill(uint8_t* output, int width, int height, int* order, int orderSize,
+    void bucket_fill(uint8_t* data, int width, int height, int* order, int orderSize,
                      int layer_id, int x, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a,
                      float error_threshold) {
         bucket_fill_layer(layer_id, x, y, r, g, b, a, error_threshold);
 
         // Call merge_layers to update the output data
-        merge_layers(output, width, height, order, orderSize); 
+        merge_layers(data, width, height, order, orderSize); 
+    }
+
+    /**
+     * Quad tree image compression. 
+     * 
+     * Compresses the layer to the desired width and height. Note: given width 
+     * and height must be strictly smaller than the original width and height 
+     * of the image. 
+     */
+    void quad_compression(uint8_t* data, int width, int height, int* order, int orderSize, int layer_id, int givenWidth, int givenHeight) {
+        // Check to make sure size is correct 
+        if (givenWidth > width || givenHeight > height) {
+            merge_layers(data, width, height, order, orderSize); 
+            return;  
+        }
+
+        // Select layer with given ID 
+        Layer& layer = layers[layer_id]; 
+
+        // Layer compression 
+        layer.quad_tree_compression(givenWidth, givenHeight); 
+
+        // Call merge_layers to update the output data 
+        merge_layers(data, width, height, order, orderSize); 
     }
 }

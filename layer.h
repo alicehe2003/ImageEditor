@@ -39,20 +39,21 @@ public:
      * maximum depth is limited to 100. The compressed layer should have dimensions 
      * width by height, where each represents the number of pixels. 
      */
-    Layer quad_tree_compression(int width, int height) {
-        Layer compressed(-1); 
-        compressed.pixels.resize(height, std::vector<Pixel>(width)); 
-
-        // Maximum depth of tree 
-        const int MAX_DEPTH = 100; 
-        // Smallest block 
-        const int MIN_SIZE = 1; 
-        // How similar colors must be 
-        const int COLOR_THRESHOLD = 10; 
-
-        compress_recursive(0, 0, width, height, 0, MAX_DEPTH, compressed.pixels, COLOR_THRESHOLD);
-
-        return compressed;
+    void quad_tree_compression(int targetWidth, int targetHeight) {
+        this->id = -1; // Mark as compressed
+    
+        int fullWidth = pixels[0].size();
+        int fullHeight = pixels.size();
+    
+        // 1. Run quad tree compression on the full image
+        std::vector<std::vector<Pixel>> compressedFull(fullHeight, std::vector<Pixel>(fullWidth));
+        const int MAX_DEPTH = 100;
+        const int COLOR_THRESHOLD = 10;
+    
+        compress_recursive(0, 0, fullWidth, fullHeight, 0, MAX_DEPTH, compressedFull, COLOR_THRESHOLD);
+    
+        // 2. Downscale from full resolution to target resolution
+        this->pixels = downscale(compressedFull, fullWidth, fullHeight, targetWidth, targetHeight);
     }
     
 private:
@@ -114,5 +115,21 @@ private:
         }
 
         return true;
+    }
+
+    std::vector<std::vector<Pixel>> downscale(
+        const std::vector<std::vector<Pixel>>& input,
+        int srcW, int srcH, int dstW, int dstH) {
+        std::vector<std::vector<Pixel>> output(dstH, std::vector<Pixel>(dstW));
+    
+        for (int y = 0; y < dstH; ++y) {
+            for (int x = 0; x < dstW; ++x) {
+                int srcX = x * srcW / dstW;
+                int srcY = y * srcH / dstH;
+                output[y][x] = input[srcY][srcX];
+            }
+        }
+    
+        return output;
     }
 }; 

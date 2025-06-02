@@ -378,4 +378,40 @@ Module().then((mod) => {
     }
   });
 
+  // Resize layer 
+  document.getElementById("resize_button").addEventListener("click", ()=>{
+    const newWidth = parseInt(document.getElementById("new_width").value);
+    const newHeight = parseInt(document.getElementById("new_height").value);
+
+    // Check for valid inputs  
+    if (isNaN(newWidth) || isNaN(newHeight) || newWidth <= 0 || newHeight <= 0) {
+      alert("Please enter valid width and height values.");
+      return;
+    }
+    
+    // Allocate memory 
+    const len = canvas.width * canvas.height * 4;
+    const outputPtr = wasmModule._malloc(len);
+    const orderPtr = wasmModule._malloc(uploadedLayerOrder.length * 4);
+
+    // Copy the layer order into WASM memory
+    const orderHeap = new Int32Array(wasmModule.HEAPU8.buffer, orderPtr, uploadedLayerOrder.length);
+    for (let i = 0; i < uploadedLayerOrder.length; i++) {
+      orderHeap[i] = uploadedLayerOrder[i];
+    }
+
+    // Call compression function in WASM with selected layer ID
+    wasmModule.ccall("quad_compression", null, ["number", "number", "number", "number", "number", "number", "number", "number"],
+      [outputPtr, canvas.width, canvas.height, orderPtr, uploadedLayerOrder.length, selectedLayerId, newWidth, newHeight]);
+
+    // Get the processed image data and display it
+    const heap = new Uint8ClampedArray(wasmModule.HEAPU8.buffer, outputPtr, len);
+    const processedImage = new ImageData(heap, canvas.width, canvas.height);
+    ctx.putImageData(processedImage, 0, 0);
+
+    // Free WASM memory
+    wasmModule._free(outputPtr);
+    wasmModule._free(orderPtr);
+  }); 
+
 });
