@@ -42,6 +42,9 @@ public:
         int fullWidth = pixels[0].size();
         int fullHeight = pixels.size();
 
+        // Check given height and width are strictly smaller than current height and width 
+        if (targetWidth > fullWidth || targetHeight > fullHeight) return; 
+
         const int MAX_DEPTH = 100;
         const int COLOR_THRESHOLD = 10;
 
