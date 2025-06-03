@@ -20,7 +20,6 @@ public:
 
 class Layer {
 public: 
-    // id = -1 is compressed
     int id; 
     std::vector<std::vector<Pixel>> pixels; 
 
@@ -40,8 +39,6 @@ public:
      * width by height, where each represents the number of pixels. 
      */
     void quad_tree_compression(int targetWidth, int targetHeight) {
-        this->id = -1; // Mark as compressed
-    
         int fullWidth = pixels[0].size();
         int fullHeight = pixels.size();
     
