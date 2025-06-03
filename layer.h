@@ -41,28 +41,26 @@ public:
     void quad_tree_compression(int targetWidth, int targetHeight) {
         int fullWidth = pixels[0].size();
         int fullHeight = pixels.size();
-    
-        // 1. Run quad tree compression on the full image
-        std::vector<std::vector<Pixel>> compressedFull(fullHeight, std::vector<Pixel>(fullWidth));
+
         const int MAX_DEPTH = 100;
         const int COLOR_THRESHOLD = 10;
-    
-        compress_recursive(0, 0, fullWidth, fullHeight, 0, MAX_DEPTH, compressedFull, COLOR_THRESHOLD);
-    
-        // 2. Downscale from full resolution to target resolution
-        this->pixels = downscale(compressedFull, fullWidth, fullHeight, targetWidth, targetHeight);
+
+        // Modify pixels directly instead of using a separate compressedFull
+        compress_recursive(0, 0, fullWidth, fullHeight, 0, MAX_DEPTH, COLOR_THRESHOLD);
+
+        // Downscale and update pixels to new resolution
+        this->pixels = downscale(pixels, fullWidth, fullHeight, targetWidth, targetHeight);
     }
     
 private:
     void compress_recursive(int x0, int y0, int w, int h, int depth,
                             int maxDepth,
-                            std::vector<std::vector<Pixel>>& output,
                             int threshold) {
         if (w <= 1 || h <= 1 || depth >= maxDepth || is_uniform(x0, y0, w, h, threshold)) {
             Pixel avg = average_color(x0, y0, w, h);
             for (int y = y0; y < y0 + h; ++y) {
                 for (int x = x0; x < x0 + w; ++x) {
-                    output[y][x] = avg;
+                    pixels[y][x] = avg;
                 }
             }
             return;
@@ -71,10 +69,10 @@ private:
         int hw = w / 2;
         int hh = h / 2;
 
-        compress_recursive(x0,        y0,        hw, hh, depth + 1, maxDepth, output, threshold); // top-left
-        compress_recursive(x0 + hw,   y0,        w - hw, hh, depth + 1, maxDepth, output, threshold); // top-right
-        compress_recursive(x0,        y0 + hh,   hw, h - hh, depth + 1, maxDepth, output, threshold); // bottom-left
-        compress_recursive(x0 + hw,   y0 + hh,   w - hw, h - hh, depth + 1, maxDepth, output, threshold); // bottom-right
+        compress_recursive(x0,        y0,        hw, hh, depth + 1, maxDepth, threshold); // top-left
+        compress_recursive(x0 + hw,   y0,        w - hw, hh, depth + 1, maxDepth, threshold); // top-right
+        compress_recursive(x0,        y0 + hh,   hw, h - hh, depth + 1, maxDepth, threshold); // bottom-left
+        compress_recursive(x0 + hw,   y0 + hh,   w - hw, h - hh, depth + 1, maxDepth, threshold); // bottom-right
     }
 
     Pixel average_color(int x0, int y0, int w, int h) {
