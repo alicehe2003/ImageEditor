@@ -52,7 +52,7 @@ public:
         compress_recursive(0, 0, fullWidth, fullHeight, 0, MAX_DEPTH, COLOR_THRESHOLD);
 
         // Downscale and update pixels to new resolution
-        this->pixels = downscale(pixels, fullWidth, fullHeight, targetWidth, targetHeight);
+        this->pixels = downscale(targetWidth, targetHeight);
     }
     
 private:
@@ -115,19 +115,19 @@ private:
         return true;
     }
 
-    std::vector<std::vector<Pixel>> downscale(
-        const std::vector<std::vector<Pixel>>& input,
-        int srcW, int srcH, int dstW, int dstH) {
+    std::vector<std::vector<Pixel>> downscale(int dstW, int dstH) {
+        int srcH = pixels.size();
+        int srcW = pixels[0].size();
         std::vector<std::vector<Pixel>> output(dstH, std::vector<Pixel>(dstW));
     
         for (int y = 0; y < dstH; ++y) {
             for (int x = 0; x < dstW; ++x) {
                 int srcX = x * srcW / dstW;
                 int srcY = y * srcH / dstH;
-                output[y][x] = input[srcY][srcX];
+                output[y][x] = pixels[srcY][srcX];
             }
         }
     
         return output;
-    }
+    }    
 }; 
