@@ -101,18 +101,15 @@ The error bound e between 0 and 1 indicates how "different" a pixel to be filled
 
 Give users the option to save the image as a PNG or JPEG. 
 
+## Resize image to a smaller size 
+
+Resize an image to a smaller dimension, and applies a quad tree compression algorithm. This algorithm recursively divides an image into four rectangular regions and simplifies each region based on how similar the pixel colours are. 
+1. Start with the entire image region. 
+2. Check if thre region is uniform in colour. If yes, replace all pixels in that region with their average colour. If no, split the region into four quadrants and repeat the process on each. 
+3. Continue recursively until all regions are uniform or a maximum depth is reached. 
+This method reduces image detail in visually consisten areas, and enables faster processing by skipping detailed work in simple regions. 
+
 # Additional functionalities 
-
-## Edge detection 
-
-The Canny edge detector is the standard for many applications. 
-1. Apply Gaussian blur (noise reduction). 
-2. Compute gradients (Sobel). 
-3. Non-maximum suppression (thin edges). 
-4. Hysteresis thresholding (track strong/weak edges). 
-This method is accurate, clean, and efficient. 
-
-## Image compression 
 
 ## Image decompression 
 
