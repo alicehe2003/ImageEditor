@@ -167,15 +167,4 @@ https://www.figma.com/blog/speeding-up-build-times/
 
 # Known bugs
 
-- Browser sometimes refresh itself, losing all data 
-
-# Design inspirations 
-
-https://www.figma.com/community/file/1423309616378411764/image-editor
-https://www.figma.com/community/plugin/1164118094004004837/photopea
-https://www.figma.com/community/plugin/1192319987122007459/image-remove-background-upscale-downsize-compress-edit-image 
-https://www.figma.com/community/file/1473342027748647996/app-video-image-editing-toolui-component-dark-light-mode-icon-sets 
-https://dribbble.com/shots/20268513-Collaborative-Photo-Editing-Software-UI
-https://blog.tubikstudio.com/picture-perfect-ui-screens-for-photo-editors/ 
-https://github.com/nhn/tui.image-editor
-
+- Browser sometimes refresh itself, losing all data. Consider making a loading screen??? 
