@@ -117,6 +117,10 @@ This method reduces image detail in visually consisten areas, and enables faster
 
 ## Redo 
 
+## Resize image to a larger size 
+
+Save original image information. If the desired size is smaller than the original image size, apply compression algorithm on the original image with the desired height and width. If the desired size is larger than the original image size, implement an algorithm to extrapolate. 
+
 ## Revert to original image 
 
 For each unmerged layer, reverting it converts it to its original uploaded image. For merged layers, reverting it converts it to all of its original uploaded image, shown in multiple layers. 
