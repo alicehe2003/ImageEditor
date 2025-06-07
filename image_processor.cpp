@@ -332,13 +332,6 @@ void bucket_fill_layer(int layer_id, int x, int y, uint8_t r, uint8_t g, uint8_t
     }
 }
 
-// Helper hash for 2D positions
-struct PositionHash {
-    std::size_t operator()(const std::pair<int, int>& pos) const {
-        return std::hash<int>()(pos.first) ^ (std::hash<int>()(pos.second) << 1);
-    }
-};
-
 /**
  * Exported function APIs 
  */
@@ -391,16 +384,11 @@ extern "C" {
      * Order size is the number of layers in the order array.
      */
     void merge_layers(uint8_t* output, int width, int height, int* order, int orderSize) {
-        std::unordered_set<std::pair<int, int>, PositionHash> pixelPositions;
-        
         // Initialize output to transparent black
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
                 int idx = (y * width + x) * 4;
                 output[idx] = output[idx + 1] = output[idx + 2] = output[idx + 3] = 0;
-
-                // Init pixel positions
-                pixelPositions.insert({x, y});
             }
         } 
 
@@ -415,10 +403,6 @@ extern "C" {
             for (int y = 0; y < h; ++y) {
                 for (int x = 0; x < w; ++x) {
                     // All pixels fully set, no more blending needed
-                    if (pixelPositions.empty()) return;  
-
-                    // If pixel position is not in pixelPositions set, skip it
-                    if (pixelPositions.find({x, y}) == pixelPositions.end()) continue;
 
                     Pixel& p = layer.pixels[y][x];
                     if (x >= width || y >= height) continue;
@@ -446,11 +430,6 @@ extern "C" {
                     }
 
                     output[idx + 3] = static_cast<uint8_t>(outAlpha * 255);
-
-                    // If alpha now fully opaque, remove pixel position from set
-                    if (output[idx + 3] == 255) {
-                        pixelPositions.erase({x, y});
-                    }
                 }
             }
         }
