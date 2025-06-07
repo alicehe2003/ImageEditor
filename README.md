@@ -111,6 +111,10 @@ This method reduces image detail in visually consisten areas, and enables faster
 
 # Additional functionalities 
 
+## Timer 
+
+Times the number of milliseconds taken by each operation. 
+
 ## Image decompression 
 
 ## Undo 

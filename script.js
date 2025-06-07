@@ -19,6 +19,15 @@ let maxWidth = 0;
 let maxHeight = 0; 
 
 Module().then((mod) => {
+  // Timer 
+  function timeOperation(operationName, callback) {
+    const start = performance.now();
+    callback();
+    const end = performance.now();
+    const duration = Math.round(end - start);
+    document.getElementById("timing-display").textContent = `${operationName}: ${duration} ms`;
+  }  
+
   wasmModule = mod;
 
   // Debugging: shows available methods and access to raw WASM memory HEAPU8
@@ -139,16 +148,17 @@ Module().then((mod) => {
 
   // Attach event listeners for each monochrome button 
   document.getElementById("monochrome_average")
-    .addEventListener("click", () => applyMonochromeFilter("monochrome_average"));
+    .addEventListener("click", () => timeOperation("Monochrome (Average)", () => applyMonochromeFilter("monochrome_average")));
 
   document.getElementById("monochrome_luminosity")
-    .addEventListener("click", () => applyMonochromeFilter("monochrome_luminosity"));
+    .addEventListener("click", () => timeOperation("Monochrome (Luminosity)", () => applyMonochromeFilter("monochrome_luminosity")));
 
   document.getElementById("monochrome_lightness")
-    .addEventListener("click", () => applyMonochromeFilter("monochrome_lightness"));
+    .addEventListener("click", () => timeOperation("Monochrome (Lightness)", () => applyMonochromeFilter("monochrome_lightness")));
 
   document.getElementById("monochrome_itu")
-    .addEventListener("click", () => applyMonochromeFilter("monochrome_itu"));
+    .addEventListener("click", () => timeOperation("Monochrome (ITU-R)", () => applyMonochromeFilter("monochrome_itu")));
+
 
   // Applies a selected monochrome filter using a C++ function compiled to WASM
   function applyMonochromeFilter(cppFunctionName) {
@@ -179,6 +189,7 @@ Module().then((mod) => {
 
   // Attach event listener for the gaussian blur button
   document.getElementById("blur_gaussian").addEventListener("click", () => {
+    timeOperation("Gaussian Blur", () => {
     // Get sigma and kernel size values from the input fields 
     const sigma = parseFloat(document.getElementById("sigma").value);
     const kernelSize = parseInt(document.getElementById("kernel").value);
@@ -217,10 +228,12 @@ Module().then((mod) => {
     // Free WASM memory
     wasmModule._free(outputPtr);
     wasmModule._free(orderPtr);
-  });
+    }); 
+  }); 
 
   // Attach event listener for the sobel button
   document.getElementById("edge_sobel").addEventListener("click", () => {
+    timeOperation("Edge Detection (Sobel)", () => {
     // Allocate memory for merged image data 
     const len = canvas.width * canvas.height * 4;
     const outputPtr = wasmModule._malloc(len);
@@ -244,10 +257,12 @@ Module().then((mod) => {
     // Free WASM memory
     wasmModule._free(outputPtr);
     wasmModule._free(orderPtr);
-  });
+    });
+  }); 
 
   // Attach event listener for the Laplacian of Gaussian button
   document.getElementById("edge_laplacian_of_gaussian").addEventListener("click", () => {
+    timeOperation("Edge Detection (LoG)", () => {
     const sigma = parseFloat(document.getElementById('log_sigma').value);
     let kernelSize = parseInt(document.getElementById('log_kernel').value);
 
@@ -285,7 +300,8 @@ Module().then((mod) => {
     // Free WASM memory
     wasmModule._free(outputPtr);
     wasmModule._free(orderPtr);
-  });
+    });
+  }); 
 
   // Attach event listener for when user clicks on the canvas to use bucket tool 
   canvas.addEventListener("click", (e) => {
@@ -295,7 +311,8 @@ Module().then((mod) => {
 
     const x = Math.floor((e.clientX - rect.left) * scaleX);
     const y = Math.floor((e.clientY - rect.top) * scaleY);
-    applyBucketFill(x, y);
+
+    timeOperation("Bucket Fill", () => applyBucketFill(x, y));
   });
   
   // Bucket tool 
@@ -379,7 +396,8 @@ Module().then((mod) => {
   });
 
   // Resize layer 
-  document.getElementById("resize_button").addEventListener("click", ()=>{
+  document.getElementById("resize_button").addEventListener("click", () => {
+    timeOperation("Resize", () => {
     const newWidth = parseInt(document.getElementById("new_width").value);
     const newHeight = parseInt(document.getElementById("new_height").value);
 
@@ -412,6 +430,7 @@ Module().then((mod) => {
     // Free WASM memory
     wasmModule._free(outputPtr);
     wasmModule._free(orderPtr);
+    }); 
   }); 
 
 });
