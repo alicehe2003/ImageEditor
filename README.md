@@ -46,24 +46,14 @@ Key differences:
 
 In order to optimize for workloads with a large number of layers, this function uses the following algorithm: 
 
-1. Initialize an unordered set of all pixel positions (x,y). This represents the positions in the current canvas that has yet to be fully "set" with some colour. 
-2. Process each layer from top to bottom. 
-- For the current layer, iterate through its pixel positions (x,y). 
-- For each pixel at position (x,y) of the current layer, if it is not in the unordered map then skip. 
-- For each pixel at position (x,y) of the current layer, if its alpha channel is 255, then remove (x,y) from the unordered set. This indicates that layers beneath this one cannot contribute to the final colour shown. 
-- Use the R,G,B,A information of the current layer to blend it with previous layers. 
-3. Continue until either all layers have been processed, or until the unordered set is empty. 
-
-In the worst case, every pixel of every layer is operated on. This would be equivalent to the brute force method. However, when there are a lot of layers, and the top few layers dominate all pixel information of the canvas, the algorithm allows for early termination as all dominating pixel information has already been processed. That is, all pixels on lower levels (that are covered by the top layers) do not have to be processed at all. 
+Process each layer from top to bottom, pixel by pixel. For each pixel, blend its RGBA value with the existing colour at that position. 
 
 An alternative proposed implementation that does NOT work as well: 
 
 1. For each pixel location (x,y) in the image, calculate its final colour layer by layer, and from top to bottom. 
 2. Move on to the next pixel early if the current colour has alpha = 255. 
 
-This method has the same time completity, but constant space complexity as it does not use a set to store the not-fully-processed pixel locations. 
-
-However, from testing, this method has significantly worse actual runtime. This is likely because pixels in the same layer are stored consecutively in memory. Jumping from layer to layer causes significantly more cache misses, requiring the same layer to be retrieved multiple times (up to x * y times). This destroys the CPU cache efficiency. 
+This method has the same time completity, however, this method has significantly worse actual runtime. This is likely because pixels in the same layer are stored consecutively in memory. Jumping from layer to layer causes significantly more cache misses, requiring the same layer to be retrieved multiple times (up to x * y times). This destroys the CPU cache efficiency. 
 
 # Current features 
 
@@ -109,11 +99,11 @@ Resize an image to a smaller dimension, and applies a quad tree compression algo
 3. Continue recursively until all regions are uniform or a maximum depth is reached. 
 This method reduces image detail in visually consisten areas, and enables faster processing by skipping detailed work in simple regions. 
 
-# Additional functionalities 
-
 ## Timer 
 
 Times the number of milliseconds taken by each operation. 
+
+# Additional functionalities 
 
 ## Image decompression 
 
