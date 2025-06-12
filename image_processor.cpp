@@ -141,52 +141,78 @@ void gaussian_blur_layer(int layer_id, double sigma, int kernelSize) {
 void edge_sobel_layer(int layer_id) {
     Layer& layer = layers[layer_id];
 
-    int layer_width = layer.pixels[0].size();
-    int layer_height = layer.pixels.size();
+    const int height = layer.pixels.size();
+    if (height == 0) return;
+    const int width = layer.pixels[0].size();
 
-    // Sobel kernels
-    const int Gx[3][3] = {
-        {-1, 0, 1},
-        {-2, 0, 2},
-        {-1, 0, 1}
-    };
-    const int Gy[3][3] = {
-        {1, 2, 1},
-        {0, 0, 0},
-        {-1, -2, -1}
-    };
+    // Precompute grayscale to a linear buffer for cache efficiency
+    std::vector<uint8_t> gray_buffer(width * height);
+    for (int y = 0; y < height; ++y) {
+        Pixel* row = layer.pixels[y].data();
+        for (int x = 0; x < width; ++x) {
+            // Simple average grayscale
+            gray_buffer[y * width + x] = static_cast<uint8_t>((row[x].r + row[x].g + row[x].b) / 3);
+        }
+    }
 
-    // First pass: compute magnitudes and find the max value
-    std::vector<int> magnitudes(layer_width * layer_height, 0);
-    int maxMag = 1; // Avoid division by zero
+    // Sobel kernels as 1D arrays to avoid 2D indexing overhead
+    constexpr int Gx[9] = {-1, 0, 1, -2, 0, 2, -1, 0, 1};
+    constexpr int Gy[9] = {1, 2, 1, 0, 0, 0, -1, -2, -1};
 
-    for (int y = 1; y < layer_height - 1; y++) {
-        for (int x = 1; x < layer_width - 1; x++) {
+    // Output buffer for edge magnitude
+    std::vector<int> magnitudes(width * height, 0);
+
+    int maxMag = 1;
+
+    // Apply Sobel - skip border pixels (1..height-2, 1..width-2)
+    // Unroll kernel loops for 3x3 fixed size (9 operations)
+    for (int y = 1; y < height - 1; ++y) {
+        int base_idx = y * width;
+        int prev_idx = (y - 1) * width;
+        int next_idx = (y + 1) * width;
+
+        for (int x = 1; x < width - 1; ++x) {
             int gx = 0, gy = 0;
 
-            for (int ky = -1; ky <= 1; ky++) {
-                for (int kx = -1; kx <= 1; kx++) {
-                    Pixel& p = layer.pixels[y + ky][x + kx];
-                    uint8_t gray = static_cast<uint8_t>((p.r + p.g + p.b) / 3);
-                    gx += gray * Gx[ky + 1][kx + 1];
-                    gy += gray * Gy[ky + 1][kx + 1];
-                }
-            }
+            // Manually unrolled 3x3 kernel convolution
+            // Indices relative to center pixel (x,y)
+            gx += gray_buffer[prev_idx + (x - 1)] * Gx[0];
+            gx += gray_buffer[prev_idx + x] * Gx[1];
+            gx += gray_buffer[prev_idx + (x + 1)] * Gx[2];
+            gx += gray_buffer[base_idx + (x - 1)] * Gx[3];
+            gx += gray_buffer[base_idx + x] * Gx[4];
+            gx += gray_buffer[base_idx + (x + 1)] * Gx[5];
+            gx += gray_buffer[next_idx + (x - 1)] * Gx[6];
+            gx += gray_buffer[next_idx + x] * Gx[7];
+            gx += gray_buffer[next_idx + (x + 1)] * Gx[8];
 
-            int mag = static_cast<int>(std::sqrt(gx * gx + gy * gy));
-            magnitudes[y * layer_width + x] = mag;
+            gy += gray_buffer[prev_idx + (x - 1)] * Gy[0];
+            gy += gray_buffer[prev_idx + x] * Gy[1];
+            gy += gray_buffer[prev_idx + (x + 1)] * Gy[2];
+            gy += gray_buffer[base_idx + (x - 1)] * Gy[3];
+            gy += gray_buffer[base_idx + x] * Gy[4];
+            gy += gray_buffer[base_idx + (x + 1)] * Gy[5];
+            gy += gray_buffer[next_idx + (x - 1)] * Gy[6];
+            gy += gray_buffer[next_idx + x] * Gy[7];
+            gy += gray_buffer[next_idx + (x + 1)] * Gy[8];
+
+            // Approximate magnitude by sum of abs gx + abs gy (faster than sqrt)
+            int mag = std::abs(gx) + std::abs(gy);
+
+            magnitudes[base_idx + x] = mag;
             if (mag > maxMag) maxMag = mag;
         }
     }
 
-    // Second pass: normalize and write to layer
-    for (int y = 1; y < layer_height - 1; y++) {
-        for (int x = 1; x < layer_width - 1; x++) {
-            int mag = magnitudes[y * layer_width + x];
-            uint8_t edge = static_cast<uint8_t>((mag * 255) / maxMag);
-
-            Pixel& p = layer.pixels[y][x];
-            p.r = p.g = p.b = edge;
+    // Normalize and write back to pixels (skip borders)
+    const float invMax = 255.0f / maxMag;
+    for (int y = 1; y < height - 1; ++y) {
+        Pixel* row = layer.pixels[y].data();
+        int base_idx = y * width;
+        for (int x = 1; x < width - 1; ++x) {
+            int mag = magnitudes[base_idx + x];
+            uint8_t edge = static_cast<uint8_t>(mag * invMax);
+            row[x].r = row[x].g = row[x].b = edge;
         }
     }
 }
