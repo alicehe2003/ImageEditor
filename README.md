@@ -149,6 +149,8 @@ Images can be moved around on the canvas area.
 - Check Figma 
 - Design using Figma 
 - Open CV library 
+- Flame diagram to see the runtime breakdowns 
+- WebGL 
 
 Links to consider 
 
