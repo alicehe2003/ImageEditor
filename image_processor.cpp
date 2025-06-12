@@ -57,80 +57,80 @@ void apply_monochrome_filter(int layer_id, uint8_t(*grayscale_fn)(uint8_t, uint8
  * This function applies a Gaussian blur to a specific layer in the image.
  */
 
-void gaussian_blur_layer(int layer_id, double sigma, int kernelSize) {
-    // Ensure kernelSize is odd for centering 
-    if (kernelSize % 2 == 0) kernelSize++; 
+ void gaussian_blur_layer(int layer_id, double sigma, int kernelSize) {
+    if (kernelSize % 2 == 0) kernelSize++;
     int halfKernel = kernelSize / 2;
 
-    // Create Gaussian kernel
-    std::vector<double> kernel(kernelSize); 
-    double sum = 0.0;
-    double kernel_denominator = 2 * sigma * sigma; 
+    // Generate 1D Gaussian kernel
+    std::vector<float> kernel(kernelSize);
+    float denom = 2.0f * sigma * sigma;
+    float sum = 0.0f;
 
-    for (int i = 0; i < kernelSize; i++) {
+    for (int i = 0; i < kernelSize; ++i) {
         int x = i - halfKernel;
-        kernel[i] = std::exp(-(x * x) / kernel_denominator);
+        kernel[i] = std::exp(-(x * x) / denom);
         sum += kernel[i];
-    } 
+    }
+    for (float& k : kernel) k /= sum;
 
-    // Normalize kernel 
-    for (double& k : kernel) k /= sum;
-
-    // Get the specific layer 
     Layer& layer = layers[layer_id];
+    const int width = layer.pixels[0].size();
+    const int height = layer.pixels.size();
 
-    int layer_width = layer.pixels[0].size();
-    int layer_height = layer.pixels.size();
+    // Temp buffer: store RGBA per pixel as 4 * uint8_t
+    std::vector<uint8_t> temp(width * height * 4);
 
-    // Create temporary buffer for the blurred image 
-    std::vector<uint8_t> temp(layer_width * layer_height * 4);
+    // === HORIZONTAL PASS ===
+    for (int y = 0; y < height; ++y) {
+        Pixel* row = layer.pixels[y].data();
+        for (int x = 0; x < width; ++x) {
+            float r = 0, g = 0, b = 0, a = 0;
 
-    // Horizontal blur 
-    for (int y = 0; y < layer_height; y++) {
-        auto& row = layer.pixels[y]; 
-        for (int x = 0; x < layer_width; x++) {
-            double r = 0, g = 0, b = 0, a = 0; 
+            for (int k = -halfKernel; k <= halfKernel; ++k) {
+                int sampleX = x + k;
+                if (sampleX < 0) sampleX = 0;
+                else if (sampleX >= width) sampleX = width - 1;
 
-            for (int k = -halfKernel; k <= halfKernel; k++) {
-                int sampleX = std::clamp(x + k, 0, layer_width - 1);
-
+                float coeff = kernel[k + halfKernel];
                 Pixel& p = row[sampleX];
-
-                r += p.r * kernel[k + halfKernel];
-                g += p.g * kernel[k + halfKernel];
-                b += p.b * kernel[k + halfKernel];
-                a += p.a * kernel[k + halfKernel];
+                r += p.r * coeff;
+                g += p.g * coeff;
+                b += p.b * coeff;
+                a += p.a * coeff;
             }
 
-            int dstIdx = (y * layer_width + x) * 4;
-            temp[dstIdx] = static_cast<uint8_t>(std::clamp(static_cast<int>(r), 0, 255));
-            temp[dstIdx + 1] = static_cast<uint8_t>(std::clamp(static_cast<int>(g), 0, 255));
-            temp[dstIdx + 2] = static_cast<uint8_t>(std::clamp(static_cast<int>(b), 0, 255));
-            temp[dstIdx + 3] = static_cast<uint8_t>(std::clamp(static_cast<int>(a), 0, 255));
+            int idx = (y * width + x) * 4;
+            temp[idx]     = static_cast<uint8_t>(std::min(255.0f, std::max(0.0f, r)));
+            temp[idx + 1] = static_cast<uint8_t>(std::min(255.0f, std::max(0.0f, g)));
+            temp[idx + 2] = static_cast<uint8_t>(std::min(255.0f, std::max(0.0f, b)));
+            temp[idx + 3] = static_cast<uint8_t>(std::min(255.0f, std::max(0.0f, a)));
         }
     }
 
-    // Vertical blur
-    for (int y = 0; y < layer_height; y++) {
-        for (int x = 0; x < layer_width; x++) {
-            double r = 0, g = 0, b = 0, a = 0;
+    // === VERTICAL PASS ===
+    for (int y = 0; y < height; ++y) {
+        Pixel* row = layer.pixels[y].data();
+        for (int x = 0; x < width; ++x) {
+            float r = 0, g = 0, b = 0, a = 0;
 
-            for (int k = -halfKernel; k <= halfKernel; k++) {
-                int sampleY = std::clamp(y + k, 0, layer_height - 1);
-                int idx = (sampleY * layer_width + x) * 4;
+            for (int k = -halfKernel; k <= halfKernel; ++k) {
+                int sampleY = y + k;
+                if (sampleY < 0) sampleY = 0;
+                else if (sampleY >= height) sampleY = height - 1;
 
-                r += temp[idx] * kernel[k + halfKernel];
-                g += temp[idx + 1] * kernel[k + halfKernel];
-                b += temp[idx + 2] * kernel[k + halfKernel];
-                a += temp[idx + 3] * kernel[k + halfKernel];
+                float coeff = kernel[k + halfKernel];
+                int idx = (sampleY * width + x) * 4;
+
+                r += temp[idx]     * coeff;
+                g += temp[idx + 1] * coeff;
+                b += temp[idx + 2] * coeff;
+                a += temp[idx + 3] * coeff;
             }
 
-            // Update the pixel in the layer
-            Pixel& p = layer.pixels[y][x];
-            p.r = static_cast<uint8_t>(std::clamp(static_cast<int>(r), 0, 255));
-            p.g = static_cast<uint8_t>(std::clamp(static_cast<int>(g), 0, 255));
-            p.b = static_cast<uint8_t>(std::clamp(static_cast<int>(b), 0, 255));
-            p.a = static_cast<uint8_t>(std::clamp(static_cast<int>(a), 0, 255));
+            row[x].r = static_cast<uint8_t>(std::min(255.0f, std::max(0.0f, r)));
+            row[x].g = static_cast<uint8_t>(std::min(255.0f, std::max(0.0f, g)));
+            row[x].b = static_cast<uint8_t>(std::min(255.0f, std::max(0.0f, b)));
+            row[x].a = static_cast<uint8_t>(std::min(255.0f, std::max(0.0f, a)));
         }
     }
 }
