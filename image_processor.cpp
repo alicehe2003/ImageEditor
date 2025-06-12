@@ -287,91 +287,76 @@ void laplacian_filter_layer(int layer_id) {
  * Bucket fill tool 
  */
 
-// Helper function to check if two pixels are within a threshold
-bool pixels_within_threshold(uint8_t r1, uint8_t g1, uint8_t b1, uint8_t a1,
-    uint8_t r2, uint8_t g2, uint8_t b2, uint8_t a2,
-    float e) {
-    float nr1 = r1 / 255.0f, ng1 = g1 / 255.0f, nb1 = b1 / 255.0f, na1 = a1 / 255.0f;
-    float nr2 = r2 / 255.0f, ng2 = g2 / 255.0f, nb2 = b2 / 255.0f, na2 = a2 / 255.0f;
+// Helper function - check if within error threshold 
+inline bool pixel_within_threshold_fast(const Pixel& p1, const Pixel& p2, float threshold_sq) {
+    int dr = p1.r - p2.r;
+    int dg = p1.g - p2.g;
+    int db = p1.b - p2.b;
+    int da = p1.a - p2.a;
 
-    float dr = nr1 - nr2, dg = ng1 - ng2, db = nb1 - nb2, da = na1 - na2;
-
-    float distance_squared = dr * dr + dg * dg + db * db + da * da;
-    float normalized_distance = distance_squared / 4.0f;
-
-    return normalized_distance <= (e / 100.0f);
+    int dist_sq = dr * dr + dg * dg + db * db + da * da;
+    return dist_sq <= threshold_sq;
 }
 
 void bucket_fill_layer(int layer_id, int x, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a, float error_threshold) {
-    Layer& layer = layers[layer_id]; 
+    Layer& layer = layers[layer_id];
+    int width = layer.pixels[0].size();
+    int height = layer.pixels.size();
 
-    int layer_width = layer.pixels[0].size();
-    int layer_height = layer.pixels.size();
+    if (x < 0 || x >= width || y < 0 || y >= height) return;
 
-    if (x < 0 || x >= layer_width || y < 0 || y >= layer_height) return;
+    const Pixel ref_pixel = layer.pixels[y][x];
 
-    Pixel& ref_pixel = layer.pixels[y][x];
+    // Normalize threshold: scale [0,100] to [0, 255^2*4]
+    int max_channel_distance = 255;
+    float max_possible_sq = 4.0f * max_channel_distance * max_channel_distance;
+    float threshold_sq = (error_threshold / 100.0f) * max_possible_sq;
 
-    uint8_t ref_r = ref_pixel.r;
-    uint8_t ref_g = ref_pixel.g;
-    uint8_t ref_b = ref_pixel.b;
-    uint8_t ref_a = ref_pixel.a;
+    // Use 1D visited array for speed and memory
+    std::vector<bool> visited(width * height, false);
 
-    // Create visited matrix
-    std::vector<std::vector<bool>> visited(layer_height, std::vector<bool>(layer_width, false));
+    // Use vector as queue (faster than std::queue)
+    std::vector<std::pair<int, int>> queue;
+    queue.reserve(width * height);
+    queue.emplace_back(x, y);
+    visited[y * width + x] = true;
 
-    std::queue<std::pair<int, int>> q;
-    q.push({x, y});
-    visited[y][x] = true;
+    while (!queue.empty()) {
+        auto [cx, cy] = queue.back();
+        queue.pop_back();
 
-    while (!q.empty()) {
-        auto [cur_x, cur_y] = q.front();
-        q.pop();
+        Pixel& cur_pixel = layer.pixels[cy][cx];
 
-        // Get current pixel
-        Pixel& cur_pixel = layer.pixels[cur_y][cur_x];
+        if (!pixel_within_threshold_fast(cur_pixel, ref_pixel, threshold_sq)) continue;
 
-        // Check if the color matches the reference
-        if (pixels_within_threshold(cur_pixel.r, cur_pixel.g, cur_pixel.b, cur_pixel.a,
-                                ref_r, ref_g, ref_b, ref_a, error_threshold)) {
-            // Set new color
-            if (a == 255) {
-                // Fully opaque: just replace
-                cur_pixel.r = r;
-                cur_pixel.g = g;
-                cur_pixel.b = b;
-                cur_pixel.a = a;
-            } else {
-                // Blend: new = src * alpha + dst * (1 - alpha)
-                float src_a = a / 255.0f;
-                float dst_a = cur_pixel.a / 255.0f;
-                float out_a = src_a + dst_a * (1.0f - src_a);
-            
-                if (out_a > 0.0f) {
-                    cur_pixel.r = static_cast<uint8_t>(
-                        (r * src_a + cur_pixel.r * dst_a * (1.0f - src_a)) / out_a
-                    );
-                    cur_pixel.g = static_cast<uint8_t>(
-                        (g * src_a + cur_pixel.g * dst_a * (1.0f - src_a)) / out_a
-                    );
-                    cur_pixel.b = static_cast<uint8_t>(
-                        (b * src_a + cur_pixel.b * dst_a * (1.0f - src_a)) / out_a
-                    );
-                    cur_pixel.a = static_cast<uint8_t>(out_a * 255.0f);
-                }
-            }                
+        if (a == 255) {
+            cur_pixel.r = r;
+            cur_pixel.g = g;
+            cur_pixel.b = b;
+            cur_pixel.a = a;
+        } else {
+            float src_a = a / 255.0f;
+            float dst_a = cur_pixel.a / 255.0f;
+            float out_a = src_a + dst_a * (1.0f - src_a);
 
-            // Push unvisited neighbors
-            const int dx[4] = {1, -1, 0, 0};
-            const int dy[4] = {0, 0, 1, -1};
+            if (out_a > 0.0f) {
+                cur_pixel.r = static_cast<uint8_t>((r * src_a + cur_pixel.r * dst_a * (1.0f - src_a)) / out_a);
+                cur_pixel.g = static_cast<uint8_t>((g * src_a + cur_pixel.g * dst_a * (1.0f - src_a)) / out_a);
+                cur_pixel.b = static_cast<uint8_t>((b * src_a + cur_pixel.b * dst_a * (1.0f - src_a)) / out_a);
+                cur_pixel.a = static_cast<uint8_t>(out_a * 255.0f);
+            }
+        }
 
-            for (int dir = 0; dir < 4; ++dir) {
-                int nx = cur_x + dx[dir];
-                int ny = cur_y + dy[dir];
-
-                if (nx >= 0 && nx < layer_width && ny >= 0 && ny < layer_height && !visited[ny][nx]) {
-                    visited[ny][nx] = true;
-                    q.push({nx, ny});
+        // Check 4 neighbors
+        const int dx[4] = {1, -1, 0, 0};
+        const int dy[4] = {0, 0, 1, -1};
+        for (int d = 0; d < 4; ++d) {
+            int nx = cx + dx[d], ny = cy + dy[d];
+            if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                int idx = ny * width + nx;
+                if (!visited[idx]) {
+                    visited[idx] = true;
+                    queue.emplace_back(nx, ny);
                 }
             }
         }
