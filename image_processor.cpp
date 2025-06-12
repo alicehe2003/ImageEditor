@@ -219,48 +219,65 @@ void edge_sobel_layer(int layer_id) {
 
 void laplacian_filter_layer(int layer_id) {
     Layer& layer = layers[layer_id];
-    
-    int layer_width = layer.pixels[0].size();
-    int layer_height = layer.pixels.size();
 
-    const int kernel[3][3] = {
-        {-1, -1, -1},
-        {-1,  8, -1},
-        {-1, -1, -1}
-    };
+    const int height = layer.pixels.size();
+    if (height == 0) return;
+    const int width = layer.pixels[0].size();
 
-    std::vector<std::vector<int>> laplacian_values(layer_height, std::vector<int>(layer_width, 0));
-
-    // First pass: compute Laplacian
-    for (int y = 1; y < layer_height - 1; y++) {
-        for (int x = 1; x < layer_width - 1; x++) {
-            int sum = 0;
-            for (int ky = -1; ky <= 1; ky++) {
-                for (int kx = -1; kx <= 1; kx++) {
-                    Pixel& p = layer.pixels[y + ky][x + kx];
-                    uint8_t gray = static_cast<uint8_t>((p.r + p.g + p.b) / 3);
-                    sum += gray * kernel[ky + 1][kx + 1];
-                }
-            }
-            laplacian_values[y][x] = sum;
+    // Precompute grayscale buffer for cache efficiency
+    std::vector<uint8_t> gray_buffer(width * height);
+    for (int y = 0; y < height; ++y) {
+        Pixel* row = layer.pixels[y].data();
+        for (int x = 0; x < width; ++x) {
+            gray_buffer[y * width + x] = static_cast<uint8_t>((row[x].r + row[x].g + row[x].b) / 3);
         }
     }
 
-    // Second pass: apply the result
-    for (int y = 1; y < layer_height - 1; y++) {
-        for (int x = 1; x < layer_width - 1; x++) {
-            int raw = laplacian_values[y][x];
-            
-            // Amplify the result to make edges more visible
-            int amplified = raw * 3; // Multiply by 3 for stronger edges
-            
-            // Clamp the result to 0-255 range
-            uint8_t edge = static_cast<uint8_t>(std::max(0, std::min(255, amplified)));
+    // Laplacian kernel 3x3 as 1D array (row-major)
+    constexpr int kernel[9] = {
+        -1, -1, -1,
+        -1,  8, -1,
+        -1, -1, -1
+    };
 
-            Pixel& p = layer.pixels[y][x];
-            p.r = edge;
-            p.g = edge;
-            p.b = edge;
+    // Buffer to store convolution results
+    std::vector<int> laplacian_values(width * height, 0);
+
+    for (int y = 1; y < height - 1; ++y) {
+        int base_idx = y * width;
+        int prev_idx = (y - 1) * width;
+        int next_idx = (y + 1) * width;
+
+        for (int x = 1; x < width - 1; ++x) {
+            // Manually unrolled convolution sum
+            int sum = 0;
+            sum += gray_buffer[prev_idx + (x - 1)] * kernel[0];
+            sum += gray_buffer[prev_idx + x] * kernel[1];
+            sum += gray_buffer[prev_idx + (x + 1)] * kernel[2];
+            sum += gray_buffer[base_idx + (x - 1)] * kernel[3];
+            sum += gray_buffer[base_idx + x] * kernel[4];
+            sum += gray_buffer[base_idx + (x + 1)] * kernel[5];
+            sum += gray_buffer[next_idx + (x - 1)] * kernel[6];
+            sum += gray_buffer[next_idx + x] * kernel[7];
+            sum += gray_buffer[next_idx + (x + 1)] * kernel[8];
+
+            laplacian_values[base_idx + x] = sum;
+        }
+    }
+
+    // Amplify by 3 and clamp, then write back
+    for (int y = 1; y < height - 1; ++y) {
+        Pixel* row = layer.pixels[y].data();
+        int base_idx = y * width;
+        for (int x = 1; x < width - 1; ++x) {
+            int amplified = laplacian_values[base_idx + x] * 3;
+
+            // Clamp without std::min/max (faster)
+            if (amplified < 0) amplified = 0;
+            else if (amplified > 255) amplified = 255;
+
+            uint8_t edge = static_cast<uint8_t>(amplified);
+            row[x].r = row[x].g = row[x].b = edge;
         }
     }
 }
