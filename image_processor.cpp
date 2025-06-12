@@ -64,10 +64,11 @@ void gaussian_blur_layer(int layer_id, double sigma, int kernelSize) {
     // Create Gaussian kernel
     std::vector<double> kernel(kernelSize); 
     double sum = 0.0;
+    double kernel_denominator = 2 * sigma * sigma; 
 
     for (int i = 0; i < kernelSize; i++) {
         int x = i - halfKernel;
-        kernel[i] = std::exp(-(x * x) / (2 * sigma * sigma));
+        kernel[i] = std::exp(-(x * x) / kernel_denominator);
         sum += kernel[i];
     } 
 
@@ -472,8 +473,8 @@ extern "C" {
     }
 
     // Clamp utility 
-    inline uint8_t clamp(int value) {
-        return static_cast<uint8_t>(std::max(0, std::min(value, 255)));
+    inline uint8_t clamp(int v) {
+        return v < 0 ? 0 : (v > 255 ? 255 : v);
     }
 
     void edge_sobel(uint8_t* data, int width, int height, int* order, int orderSize, int layer_id) {
