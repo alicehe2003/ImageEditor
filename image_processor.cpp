@@ -85,13 +85,14 @@ void gaussian_blur_layer(int layer_id, double sigma, int kernelSize) {
 
     // Horizontal blur 
     for (int y = 0; y < layer_height; y++) {
+        auto& row = layer.pixels[y]; 
         for (int x = 0; x < layer_width; x++) {
             double r = 0, g = 0, b = 0, a = 0; 
 
             for (int k = -halfKernel; k <= halfKernel; k++) {
                 int sampleX = std::clamp(x + k, 0, layer_width - 1);
 
-                Pixel& p = layer.pixels[y][sampleX];
+                Pixel& p = row[sampleX];
 
                 r += p.r * kernel[k + halfKernel];
                 g += p.g * kernel[k + halfKernel];
