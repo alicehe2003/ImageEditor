@@ -141,15 +141,11 @@ Images can be moved around on the canvas area.
 
 ## TODO 
 
-- Explain the sigma and kernel for Gaussian Blur 
 - Update README with demos of each filter, example use cases 
-- CSS styling and design 
 - Use SIMD instructions for WASM 
 - Check LinkedIn job application requirements 
 - Check Figma 
-- Design using Figma 
 - Open CV library 
-- Flame diagram to see the runtime breakdowns 
 - WebGL 
 
 Links to consider 
