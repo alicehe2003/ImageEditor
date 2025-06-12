@@ -41,8 +41,9 @@ void apply_monochrome_filter(int layer_id, uint8_t(*grayscale_fn)(uint8_t, uint8
     int layer_height = layer.pixels.size();
 
     for (int y = 0; y < layer_height; ++y) {
+        auto& row = layer.pixels[y]; 
         for (int x = 0; x < layer_width; ++x) {
-            Pixel& p = layer.pixels[y][x];
+            Pixel& p = row[x];
             uint8_t gray = grayscale_fn(p.r, p.g, p.b);
             p.r = p.g = p.b = gray;
             // p.a preserved
