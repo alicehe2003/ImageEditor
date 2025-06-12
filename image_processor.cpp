@@ -416,12 +416,7 @@ extern "C" {
      */
     void merge_layers(uint8_t* output, int width, int height, int* order, int orderSize) {
         // Initialize output to transparent black
-        for (int y = 0; y < height; ++y) {
-            for (int x = 0; x < width; ++x) {
-                int idx = (y * width + x) * 4;
-                output[idx] = output[idx + 1] = output[idx + 2] = output[idx + 3] = 0;
-            }
-        } 
+        std::fill(output, output + (width * height * 4), 0);
 
         // Iterate from top layer down to bottom layer
         for (int i = orderSize - 1; i >= 0; --i) {
@@ -432,16 +427,17 @@ extern "C" {
             int w = layer.pixels[0].size();
 
             for (int y = 0; y < h; ++y) {
+                if (y >= height) continue;
+                auto& row = layer.pixels[y]; 
                 for (int x = 0; x < w; ++x) {
-                    // All pixels fully set, no more blending needed
+                    if (x >= width) continue;
 
-                    Pixel& p = layer.pixels[y][x];
-                    if (x >= width || y >= height) continue;
+                    Pixel& p = row[x];
 
                     int idx = (y * width + x) * 4;
 
                     float dstAlpha = output[idx + 3] / 255.0f;  // existing alpha in output
-                    float srcAlpha = p.a / 255.0f;             // new layer alpha (destination in this case)
+                    float srcAlpha = p.a / 255.0f;              // new layer alpha (destination in this case)
 
                     float outAlpha = dstAlpha + srcAlpha * (1 - dstAlpha);
                     if (outAlpha == 0) continue;
