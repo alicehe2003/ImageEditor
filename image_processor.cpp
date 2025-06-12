@@ -417,46 +417,50 @@ extern "C" {
     void merge_layers(uint8_t* output, int width, int height, int* order, int orderSize) {
         // Initialize output to transparent black
         std::fill(output, output + (width * height * 4), 0);
-
+    
         // Iterate from top layer down to bottom layer
         for (int i = orderSize - 1; i >= 0; --i) {
             int id = order[i];
             Layer& layer = layers[id];
-
+    
             int h = layer.pixels.size();
             int w = layer.pixels[0].size();
-
+    
             for (int y = 0; y < h; ++y) {
                 if (y >= height) continue;
-                auto& row = layer.pixels[y]; 
+                auto& row = layer.pixels[y];
+    
                 for (int x = 0; x < w; ++x) {
                     if (x >= width) continue;
-
+    
                     Pixel& p = row[x];
-
                     int idx = (y * width + x) * 4;
-
-                    float dstAlpha = output[idx + 3] / 255.0f;  // existing alpha in output
-                    float srcAlpha = p.a / 255.0f;              // new layer alpha (destination in this case)
-
+    
+                    // Normalize alpha once
+                    float srcAlpha = p.a * (1.0f / 255.0f);
+                    float dstAlpha = output[idx + 3] * (1.0f / 255.0f);
                     float outAlpha = dstAlpha + srcAlpha * (1 - dstAlpha);
-                    if (outAlpha == 0) continue;
-
+    
+                    if (outAlpha == 0.0f) continue;
+    
+                    float invOutAlpha = 1.0f / outAlpha;
+    
+                    // Precompute input colors as normalized float
+                    float srcRGB[3] = {
+                        p.r * (1.0f / 255.0f),
+                        p.g * (1.0f / 255.0f),
+                        p.b * (1.0f / 255.0f)
+                    };
+    
                     for (int c = 0; c < 3; ++c) {
-                        float dstColor = output[idx + c] / 255.0f;      // existing output color (source)
-                        float srcColor;
-                        // new pixel color (destination)
-                        switch (c) {
-                            case 0: srcColor = p.r / 255.0f; break;
-                            case 1: srcColor = p.g / 255.0f; break;
-                            case 2: srcColor = p.b / 255.0f; break;
-                            case 3: srcColor = p.a / 255.0f; break;
-                        }                                               
-                        float outColor = (dstColor * dstAlpha + srcColor * srcAlpha * (1 - dstAlpha)) / outAlpha;
-                        output[idx + c] = static_cast<uint8_t>(outColor * 255);
+                        float dstColor = output[idx + c] * (1.0f / 255.0f);
+                        float srcColor = srcRGB[c];
+    
+                        float outColor = (dstColor * dstAlpha + srcColor * srcAlpha * (1 - dstAlpha)) * invOutAlpha;
+                        output[idx + c] = static_cast<uint8_t>(outColor * 255.0f);
                     }
-
-                    output[idx + 3] = static_cast<uint8_t>(outAlpha * 255);
+    
+                    output[idx + 3] = static_cast<uint8_t>(outAlpha * 255.0f);
                 }
             }
         }
