@@ -147,6 +147,7 @@ Images can be moved around on the canvas area.
 - Check Figma 
 - Open CV library 
 - WebGL 
+- Real-time collaborate system, set up web socket 
 
 Links to consider 
 
