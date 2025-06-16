@@ -4,8 +4,6 @@ Emscripten compiles C++ functions into WASM, which is then called by JS.
 
 WASM modules run in a sandbox environment isolates from the rest of the system, hence cannot access anything outside their own memory space. In this case, JS and C++ cannot directly share the same memory space or allow direct memory manipulation. All "communication" is achieved through allocating some memory, then copying data from that memory space. This is a security feature that prevents malicious code from accessing sensitive resources or interfering with other parts of the application. 
 
-I considered making the kernal computation in `gaussian_blur` known at compile time, but this would require C++23 (since `exp` only became a `const` in C++23) - this is not an issue. The issue lies in the fact that the refactoring would involve using templates for the kernel size and sigma for kernal calculations, and I would have to export multiple `gaussian_blur` functions with fixed variants of kernel and sigma, as they will be called in JS. This introduces the issue of having to limit the sigma and kernel sizes passed by users to a few pre-defined options. 
-
 ### Emscripten 
 Emscripten is an open-source compiler toolchain that allows you to compile C and C++ code into WASM, so it can run effectively in web browser. 
 
@@ -75,6 +73,8 @@ Gaussian blur uses the Gaussian function to soften an image by smoothing pixel v
 - The kernel size determines how many pixels are sampled around each pixel. A larger kernel can capture more of the Gaussian curve, producing a better approximation of the blur. 
 - The standard deviation (sigma) controls the strength of the blur. A larger sigma spreads out the weights more, causing a smoother and wider blur. 
 
+I considered making the kernal computation in `gaussian_blur` known at compile time, but this would require C++23 (since `exp` only became a `const` in C++23) - this is not an issue. The issue lies in the fact that the refactoring would involve using templates for the kernel size and sigma for kernal calculations, and I would have to export multiple `gaussian_blur` functions with fixed variants of kernel and sigma, as they will be called in JS. This introduces the issue of having to limit the sigma and kernel sizes passed by users to a few pre-defined options. 
+
 ## Edge detection 
 
 The Sobel method is a gradient-based edge detection method that computes gradient magnitudes in both x and y directions using 3x3 convolution kernels, good for emphasizing edges and reducing noise. 
@@ -103,7 +103,7 @@ This method reduces image detail in visually consisten areas, and enables faster
 
 Times the number of milliseconds taken by each operation. 
 
-# Additional functionalities 
+# Additional functionalities (TODO)
 
 ## Image decompression 
 
@@ -139,12 +139,10 @@ On click of the information symbol beside each tool, users will be shown a descr
 
 Images can be moved around on the canvas area. 
 
-## TODO 
+## TODO + ideas 
 
 - Update README with demos of each filter, example use cases 
 - Use SIMD instructions for WASM 
-- Check LinkedIn job application requirements 
-- Check Figma 
 - Open CV library 
 - WebGL 
 - Real-time collaborate system, set up web socket 
@@ -154,10 +152,15 @@ Links to consider
 Upscaling image by converting from raster to vector 
 https://en.wikipedia.org/wiki/Image_tracing 
 
+To read
+
 https://www.figma.com/blog/webassembly-cut-figmas-load-time-by-3x/ 
 https://www.figma.com/blog/speeding-up-build-times/ 
 
 
 # Known bugs
 
-- Browser sometimes refresh itself, losing all data. Consider making a loading screen??? 
+- Browser sometimes refresh itself, losing all data. Likely cause: functions not fully loaded before uploading image, causing a refresh. Needs more investigation. 
+
+
+
