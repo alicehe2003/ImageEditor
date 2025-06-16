@@ -62,6 +62,7 @@ This method has the same time completity, however, this method has significantly
 ## Upload file 
 
 Select image file to upload to browser. 
+![upload](readme_images/upload.PNG)
 
 ## Monochromatic filters 
 
