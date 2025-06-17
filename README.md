@@ -74,7 +74,7 @@ Implement various types, including the average method, the luminosity method, th
 - The ITU-R BT.709 reflects the modern expectations for grayscale conversion. `gray = 0.2126 * R + 0.7152 * G + 0.0722 * B`
 
 <img src="demo_images/flowers.PNG" alt="original" width="200"/>
-<img src="readme_images/monochrome.PNG" alt="monochrome" height="400"/>
+<img src="readme_images/monochrome.PNG" alt="monochrome"/>
 
 ## Blurring 
 
