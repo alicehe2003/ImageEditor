@@ -73,7 +73,7 @@ Implement various types, including the average method, the luminosity method, th
 - The lightness method keeps the contrast between the brightest and darkest parts, but ignores mid-tone details. `gray = (max(R,G,B) + min(R, G, B)) / 2`
 - The ITU-R BT.709 reflects the modern expectations for grayscale conversion. `gray = 0.2126 * R + 0.7152 * G + 0.0722 * B`
 
-<img src="demo_images/flowers.PNG" alt="original" width="200"/>
+<img src="demo_images/lily.PNG" alt="original" width="200"/>
 <img src="readme_images/monochrome.PNG" alt="monochrome"/>
 
 ## Blurring 
