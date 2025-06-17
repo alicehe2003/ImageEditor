@@ -67,18 +67,54 @@ Select image file to upload to browser.
 ## Monochromatic filters 
 
 Implement various types, including the average method, the luminosity method, the lightness method, ITU-R BT.709 recommendations for modern digital media (such as YouTube, HDTV, or FFmpeg). 
-- The average method is simple but does not reflect human visual perception as it treats all colours equally. `gray = (R + G + B) / 3`
-<img src="demo_images/flowers.PNG" alt="original" width="200"/>
-<img src="readme_images/average.png" alt="average method result" width="200"/>
-- The luminosity method is the common standard, gives best visual quality and realism. Slightly slower to calculate does to floating point math. `gray = 0.299 * R + 0.587 * G + 0.114 * B` 
-<img src="demo_images/flowers.PNG" alt="original" width="200"/>
-<img src="readme_images/luminosity.png" alt="luminosity method result" width="200"/>
-- The lightness method keeps the contrast between the brightest and darkest parts, but ignores mid-tone details. `gray = (max(R,G,B) + min(R, G, B)) / 2`
-<img src="demo_images/flowers.PNG" alt="original" width="200"/>
-<img src="readme_images/lightness.png" alt="lightness method result" width="200"/>
-- The ITU-R BT.709 reflects the modern expectations for grayscale conversion. `gray = 0.2126 * R + 0.7152 * G + 0.0722 * B`
-<img src="demo_images/flowers.PNG" alt="original" width="200"/>
-<img src="readme_images/itu.png" alt="itu-r bt.709 method result" width="200"/>
+
+The average method is simple but does not reflect human visual perception as it treats all colours equally. `gray = (R + G + B) / 3`
+<div style="display: flex; gap: 10px;">
+  <div>
+    <img src="demo_images/flowers.PNG" alt="original" width="200"/>
+    <p style="text-align: center; font-size: 12px;">Original</p>
+  </div>
+  <div>
+    <img src="readme_images/average.png" alt="average method result" width="200"/>
+    <p style="text-align: center; font-size: 12px;">Average Method</p>
+  </div>
+</div>
+
+The luminosity method is the common standard, gives best visual quality and realism. Slightly slower to calculate does to floating point math. `gray = 0.299 * R + 0.587 * G + 0.114 * B` 
+<div style="display: flex; gap: 10px;">
+  <div>
+    <img src="demo_images/flowers.PNG" alt="original" width="200"/>
+    <p style="text-align: center; font-size: 12px;">Original</p>
+  </div>
+  <div>
+    <img src="readme_images/luminosity.png" alt="luminosity method result" width="200"/>
+    <p style="text-align: center; font-size: 12px;">Luminosity Method</p>
+  </div>
+</div>
+
+The lightness method keeps the contrast between the brightest and darkest parts, but ignores mid-tone details. `gray = (max(R,G,B) + min(R, G, B)) / 2`
+<div style="display: flex; gap: 10px;">
+  <div>
+    <img src="demo_images/flowers.PNG" alt="original" width="200"/>
+    <p style="text-align: center; font-size: 12px;">Original</p>
+  </div>
+  <div>
+    <img src="readme_images/lightness.png" alt="lightness method result" width="200"/>
+    <p style="text-align: center; font-size: 12px;">Lightness Method</p>
+  </div>
+</div>
+
+The ITU-R BT.709 reflects the modern expectations for grayscale conversion. `gray = 0.2126 * R + 0.7152 * G + 0.0722 * B`
+<div style="display: flex; gap: 10px;">
+  <div>
+    <img src="demo_images/flowers.PNG" alt="original" width="200"/>
+    <p style="text-align: center; font-size: 12px;">Original</p>
+  </div>
+  <div>
+    <img src="readme_images/itu.png" alt="itu-r bt.709 method result" width="200"/>
+    <p style="text-align: center; font-size: 12px;">ITU-R BT.709</p>
+  </div>
+</div>
 
 ## Blurring 
 
