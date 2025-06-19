@@ -110,6 +110,8 @@ The error bound e between 0 and 1 indicates how "different" a pixel to be filled
 
 Give users the option to save the image as a PNG or JPEG. 
 
+<img src="readme_images/save.png" alt="save"/>
+
 ## Resize image to a smaller size 
 
 Resize an image to a smaller dimension, and applies a quad tree compression algorithm. This algorithm recursively divides an image into four rectangular regions and simplifies each region based on how similar the pixel colours are. 
@@ -118,9 +120,13 @@ Resize an image to a smaller dimension, and applies a quad tree compression algo
 3. Continue recursively until all regions are uniform or a maximum depth is reached. 
 This method reduces image detail in visually consisten areas, and enables faster processing by skipping detailed work in simple regions. 
 
+<img src="readme_images/resize.png" alt="resize"/>
+
 ## Timer 
 
 Times the number of milliseconds taken by each operation. 
+
+<img src="readme_images/timer.png" alt="timer"/>
 
 # Additional functionalities (TODO)
 
