@@ -57,6 +57,8 @@ An alternative proposed implementation that does NOT work as well:
 
 This method has the same time completity, however, this method has significantly worse actual runtime. This is likely because pixels in the same layer are stored consecutively in memory. Jumping from layer to layer causes significantly more cache misses, requiring the same layer to be retrieved multiple times (up to x * y times). This destroys the CPU cache efficiency. 
 
+<img src="readme_images/layers.png" alt="layers"/>
+
 # Current features 
 
 ## Upload file 
