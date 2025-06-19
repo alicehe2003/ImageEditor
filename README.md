@@ -1,5 +1,7 @@
 # Image Editor 
 
+<img src="readme_images/full.png" alt="full"/>
+
 ## Introduction 
 
 Emscripten compiles C++ functions into WASM, which is then called by JS. 
