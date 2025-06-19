@@ -84,6 +84,9 @@ Gaussian blur uses the Gaussian function to soften an image by smoothing pixel v
 
 I considered making the kernal computation in `gaussian_blur` known at compile time, but this would require C++23 (since `exp` only became a `const` in C++23) - this is not an issue. The issue lies in the fact that the refactoring would involve using templates for the kernel size and sigma for kernal calculations, and I would have to export multiple `gaussian_blur` functions with fixed variants of kernel and sigma, as they will be called in JS. This introduces the issue of having to limit the sigma and kernel sizes passed by users to a few pre-defined options. 
 
+<img src="demo_images/flowers.PNG" alt="original" width="200"/>
+<img src="readme_images/blur.png" alt="blur"/>
+
 ## Edge detection 
 
 The Sobel method is a gradient-based edge detection method that computes gradient magnitudes in both x and y directions using 3x3 convolution kernels, good for emphasizing edges and reducing noise. 
