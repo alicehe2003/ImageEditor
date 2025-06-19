@@ -101,6 +101,9 @@ Users are able to select a desired colour (RGBA, hex, or colour wheel), input an
 
 The error bound e between 0 and 1 indicates how "different" a pixel to be filled can be compared to the colour of the pixel selected. e = 0 indicates that the two pixels have identical colour, while e = 1 indicates that they are somewhat different. Please see implementation of `pixels_within_threshold` for details on error bound calculation. 
 
+<img src="readme_images/bucket_0.png" alt="bucket"/>
+<img src="readme_images/bucket.png" alt="bucket"/>
+
 ## Save image 
 
 Give users the option to save the image as a PNG or JPEG. 
