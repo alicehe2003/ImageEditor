@@ -91,7 +91,9 @@ I considered making the kernal computation in `gaussian_blur` known at compile t
 
 The Sobel method is a gradient-based edge detection method that computes gradient magnitudes in both x and y directions using 3x3 convolution kernels, good for emphasizing edges and reducing noise. 
 
-The Laplacian of Gaussian (LoG) method is a second derivative-based method that applies the Gaussian blur, then the Laplacian operator to detect edges at points of rapid intensity change. The Laplacian filter implementation is NON-STANDARD. Modifications have been made to make the edges more visible. 
+The Laplacian of Gaussian (LoG) method is a second derivative-based method that applies the Gaussian blur, then the Laplacian operator to detect edges at points of rapid intensity change.  
+
+<img src="readme_images/edge.png" alt="edge"/>
 
 ## Colour fill (bucket tool) 
 
