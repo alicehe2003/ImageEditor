@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const connectBtn = document.createElement('button');
   connectBtn.textContent = 'Connect to Peer';
   connectBtn.onclick = connectToPeer;
-  document.querySelector('.headers').appendChild(connectBtn);
+  document.querySelector('.headers_left').appendChild(connectBtn);
 });
 
 

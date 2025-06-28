@@ -22,6 +22,12 @@ Run the following in the command line:
   -s ALLOW_MEMORY_GROWTH=1 \
   -O2` 
 
+Run local server: 
+
+`peerjs --port 9000`
+
+Select "Go Live" on VS code. 
+
 It compiles the C++ file and outputs `image_processor.wasm` (the compiled WASM) and `image_processor.js` (the JS wrapper). `_malloc` and `_free` allows JS to allocate and free memory in WASM. `HEAPU8` is used by JS to access raw WASM memory as a Uint8Array. Memory growth in WASM is allowed if needed (such as for large images). 
 
 # Notes 
