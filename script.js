@@ -3,7 +3,7 @@ let canvas = document.getElementById("canvas");
 let ctx = canvas.getContext("2d");
 // Variables for pixel data and loaded WASM module
 let imageData;
-let wasmModule;
+let wasmModule; // Declare wasmModule globally
 
 // Image id counter 
 let imageIdCounter = 0; 
@@ -18,7 +18,89 @@ let selectedLayerId = 0;
 let maxWidth = 0; 
 let maxHeight = 0; 
 
+// PeerJS setup
+let peer;
+let connections = []; // To store multiple connections
+
+// Declare processImageFile and handleReceivedImage in a scope accessible by setupConnectionListeners
+// They will be properly assigned within the Module().then block
+let processImageFile;
+let handleReceivedImage;
+
+function initializePeer() {
+  // IMPORTANT: Replace 'localhost' with your server's IP or domain if running on a different machine
+  // For local development using "Go Live", 'localhost' or '127.0.0.1' is correct.
+  peer = new Peer({
+    host: 'localhost', // Or '127.0.0.1' if 'localhost' doesn't resolve
+    port: 9000,        // The port you started your peerjs server on
+    path: '/',         // Use '/' if you didn't specify a --path, or '/image-editor' if you did
+    secure: false      // Use 'false' for local HTTP development. Set to 'true' for HTTPS/WSS in production.
+  }); 
+  peer.on('open', function(id) {
+    console.log('My peer ID is: ' + id);
+    alert('Your Peer ID: ' + id + '\nShare this ID with others to connect.');
+  });
+
+  peer.on('connection', function(conn) {
+    console.log('Incoming connection from: ' + conn.peer);
+    connections.push(conn);
+    setupConnectionListeners(conn);
+  });
+
+  peer.on('error', function(err) {
+    console.error('PeerJS error:', err);
+  });
+}
+
+function connectToPeer() {
+  const peerId = prompt("Enter Peer ID to connect to:");
+  if (peerId) {
+    const conn = peer.connect(peerId);
+    conn.on('open', function() {
+      console.log('Connected to: ' + peerId);
+      connections.push(conn);
+      setupConnectionListeners(conn);
+    });
+    conn.on('error', function(err) {
+      console.error('Connection error:', err);
+    });
+  }
+}
+
+function setupConnectionListeners(conn) {
+  conn.on('data', function(data) {
+    console.log('Received data:', data);
+    if (data.type === 'image') {
+      // Ensure handleReceivedImage is defined before it's called
+      if (typeof handleReceivedImage === 'function') {
+        handleReceivedImage(data.imageSrc);
+      } else {
+        console.error("handleReceivedImage is not yet defined!");
+      }
+    }
+  });
+
+  conn.on('close', function() {
+    console.log('Connection closed with: ' + conn.peer);
+    connections = connections.filter(c => c.peer !== conn.peer); // Remove closed connection
+  });
+}
+
+// Call this to initialize PeerJS when the script loads
+initializePeer();
+
+// Add a button or input to trigger connecting to another peer
+document.addEventListener('DOMContentLoaded', () => {
+  const connectBtn = document.createElement('button');
+  connectBtn.textContent = 'Connect to Peer';
+  connectBtn.onclick = connectToPeer;
+  document.querySelector('.headers').appendChild(connectBtn);
+});
+
+
 Module().then((mod) => {
+  wasmModule = mod; // Assign the loaded module to the global wasmModule
+
   // Timer 
   function timeOperation(operationName, callback) {
     const start = performance.now();
@@ -28,11 +110,52 @@ Module().then((mod) => {
     document.getElementById("timing-display").textContent = `${operationName}: ${duration} ms`;
   }  
 
-  wasmModule = mod;
-
   // Debugging: shows available methods and access to raw WASM memory HEAPU8
   console.log("WASM loaded:", Object.keys(wasmModule));
   console.log("HEAPU8?", wasmModule.HEAPU8);
+
+  // Define processImageFile and handleReceivedImage here, where wasmModule is available
+  processImageFile = (imageSrc) => {
+    const img = new Image();
+    img.onload = () => {
+      // Track max dimensions
+      maxWidth = Math.max(maxWidth, img.width);
+      maxHeight = Math.max(maxHeight, img.height);
+
+      // Draw this image onto a temp canvas to extract pixel data
+      // Cannot directly read pixel data from the original image in JS
+      const tempCanvas = document.createElement("canvas");
+      tempCanvas.width = img.width;
+      tempCanvas.height = img.height;
+      const tempCtx = tempCanvas.getContext("2d", { willReadFrequently: true });
+      tempCtx.drawImage(img, 0, 0);
+
+      const tempImageData = tempCtx.getImageData(0, 0, img.width, img.height);
+      const pixelData = tempImageData.data;
+      const len = pixelData.length;
+      const dataPtr = wasmModule._malloc(len);
+      const heap = new Uint8Array(wasmModule.HEAPU8.buffer, dataPtr, len);
+      heap.set(pixelData);
+
+      wasmModule.ccall("data_to_layer", null, ["number", "number", "number", "number"],
+        [dataPtr, img.width, img.height, imageIdCounter]);
+      wasmModule._free(dataPtr);
+
+      addLayerToUI(imageIdCounter, img.src);
+      uploadedLayerOrder.push(imageIdCounter);
+      imageIdCounter++;
+
+      canvas.width = maxWidth;
+      canvas.height = maxHeight;
+      renderMergedImage(uploadedLayerOrder);
+    };
+    img.src = imageSrc;
+  };
+
+  handleReceivedImage = (imageSrc) => {
+    // This function acts as if the user uploaded the image locally
+    processImageFile(imageSrc);
+  };
 
   // Waits for user to choose an image file
   document.getElementById("upload").addEventListener("change", (e) => {
@@ -43,45 +166,17 @@ Module().then((mod) => {
     let loadedImages = 0;
   
     fileArray.forEach((file) => {
-      const img = new Image();
-      img.onload = () => {
-        // Track max dimensions
-        maxWidth = Math.max(maxWidth, img.width);
-        maxHeight = Math.max(maxHeight, img.height);
-  
-        // Draw this image onto a temp canvas to extract pixel data
-        // Cannot directly read pixel data from the original image in JS
-        const tempCanvas = document.createElement("canvas");
-        tempCanvas.width = img.width;
-        tempCanvas.height = img.height;
-        const tempCtx = tempCanvas.getContext("2d", { willReadFrequently: true });
-        tempCtx.drawImage(img, 0, 0);
-  
-        const tempImageData = tempCtx.getImageData(0, 0, img.width, img.height);
-        const pixelData = tempImageData.data;
-        const len = pixelData.length;
-        const dataPtr = wasmModule._malloc(len);
-        const heap = new Uint8Array(wasmModule.HEAPU8.buffer, dataPtr, len);
-        heap.set(pixelData);
-  
-        wasmModule.ccall("data_to_layer", null, ["number", "number", "number", "number"],
-          [dataPtr, img.width, img.height, imageIdCounter]);
-        wasmModule._free(dataPtr);
-  
-        addLayerToUI(imageIdCounter, img.src);
-        uploadedLayerOrder.push(imageIdCounter);
-        imageIdCounter++;
-  
-        loadedImages++;
-  
-        // When all images are loaded, render
-        if (loadedImages === fileArray.length) {
-          canvas.width = maxWidth;
-          canvas.height = maxHeight;
-          renderMergedImage(uploadedLayerOrder);
-        }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const imageSrc = event.target.result;
+        // Share the image with connected peers
+        connections.forEach(conn => {
+          conn.send({ type: 'image', imageSrc: imageSrc });
+        });
+        // Process the image locally as well
+        processImageFile(imageSrc);
       };
-      img.src = URL.createObjectURL(file);
+      reader.readAsDataURL(file); // Read file as Data URL for sharing
     });
   }); 
   
