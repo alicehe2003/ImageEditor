@@ -34,21 +34,21 @@ let connections = []; // To store multiple connections
 // in a scope accessible by setupConnectionListeners and Module().then block
 let processImageFile;
 let handleReceivedImage;
-let applyOperationLocally; 
+let applyOperationLocally;
 
 /**
- * Set up and configure the PeerJS client in the browser, allowing it to 
- * connect to a PeerJS signaling server and then establick P2P connections 
- * with other clients. 
+ * Set up and configure the PeerJS client in the browser, allowing it to
+ * connect to a PeerJS signaling server and then establick P2P connections
+ * with other clients.
  */
 function initializePeer() {
   peer = new Peer({
-    host: 'localhost',  // hostname or IP address 
-    port: 9000,         // 9000 is default for PeerJS server 
-    path: '/',          // serve from specific path or subpath 
+    host: 'localhost',  // hostname or IP address
+    port: 9000,         // 9000 is default for PeerJS server
+    path: '/',          // serve from specific path or subpath
     secure: false       // whether to use secure (WSS) or insecure (WS) WebSocket connection to signaling server
   });
-  // Pop up to share peer ID with others 
+  // Pop up to share peer ID with others
   peer.on('open', function(id) {
     console.log('My peer ID is: ' + id);
     alert('Your Peer ID: ' + id + '\nShare this ID with others to connect.');
@@ -59,14 +59,14 @@ function initializePeer() {
     connections.push(conn);
     setupConnectionListeners(conn);
   });
-  // Catches errors with PeerJS client 
+  // Catches errors with PeerJS client
   peer.on('error', function(err) {
     console.error('PeerJS error:', err);
   });
 }
 
 /**
- * Triggered by connect to peer button. Asks user for Peer ID, 
+ * Triggered by connect to peer button. Asks user for Peer ID,
  * and sets up connection.
  */
 function connectToPeer() {
@@ -85,39 +85,44 @@ function connectToPeer() {
 }
 
 /**
- * Send all operations to all connected peers. 
+ * Send all operations to all connected peers.
  */
 function sendOperationToPeers(operationType, payload) {
   connections.forEach(conn => {
     conn.send({
       type: 'operation',              // Indicate that this is an operation message
-      operationType: operationType,   // The function name 
+      operationType: operationType,   // The function name
       payload: payload                // The function input parameters and data
     });
   });
 }
 
 /**
- * Defines how application reacts when data is received from a connected peer, or when 
- * a connection is closed. 
+ * Defines how application reacts when data is received from a connected peer, or when
+ * a connection is closed.
  */
 function setupConnectionListeners(conn) {
-  // Event listener, triggered when connected peer sends data to this data channel 
-  // The structure of data depends on what the sender (conn.send()) has sent 
+  // Event listener, triggered when connected peer sends data to this data channel
+  // The structure of data depends on what the sender (conn.send()) has sent
   conn.on('data', function(data) {
     console.log('Received data:', data);
-    // Handles messages that represent raw image data 
+    // Handles messages that represent raw image data
     if (data.type === 'image_binary') {
-      // Extract image data buffer from received message 
+      // Extract image data buffer from received message
       const receivedDataFromPeer = data.imageDataBuffer;
 
       if (receivedDataFromPeer && receivedDataFromPeer.buffer instanceof ArrayBuffer) {
-        // Reconstructs an ImageData object from received binary data and its original dimentions 
-        // ImageData is standard browser API for pixel manipulation 
+        // Update local maxWidth and maxHeight based on sender's canvas dimensions
+        // This is crucial for resizing the canvas on the receiving peer
+        maxWidth = Math.max(maxWidth, data.canvasWidth);
+        maxHeight = Math.max(maxHeight, data.canvasHeight);
+
+        // Reconstructs an ImageData object from received binary data and its original dimentions
+        // ImageData is standard browser API for pixel manipulation
         const receivedUint8ClampedArray = new Uint8ClampedArray(receivedDataFromPeer.buffer);
         const receivedImageData = new ImageData(receivedUint8ClampedArray, data.width, data.height);
 
-        // Handles received images 
+        // Handles received images
         if (typeof handleReceivedImage === 'function') {
           handleReceivedImage(receivedImageData);
         } else {
@@ -130,7 +135,7 @@ function setupConnectionListeners(conn) {
         // Handles received operation
         if (typeof applyOperationLocally === 'function') {
             // Pass true for 'isRemote' to prevent re-sending
-            // Execute received operation 
+            // Execute received operation
             applyOperationLocally(data.operationType, data.payload, true);
         } else {
             console.error("applyOperationLocally is not yet defined!");
@@ -142,14 +147,14 @@ function setupConnectionListeners(conn) {
   conn.on('close', function() {
     console.log('Connection closed with: ' + conn.peer);
     // Updates global connections array by removing the closed connection
-    // Ensures application only attempts to send message to active peers 
+    // Ensures application only attempts to send message to active peers
     connections = connections.filter(c => c.peer !== conn.peer);
   });
 }
 
 /**
- * Initialize server and P2P first, then display button to connect to 
- * peers. Ensures that P2P is set up before displaying button. 
+ * Initialize server and P2P first, then display button to connect to
+ * peers. Ensures that P2P is set up before displaying button.
  */
 
 initializePeer();
@@ -165,7 +170,7 @@ Module().then((mod) => {
   wasmModule = mod;
 
   /**
-   * Time the duration in milliseconds taken by an operation. 
+   * Time the duration in milliseconds taken by an operation.
    */
   function timeOperation(operationName, callback) {
     const start = performance.now();
@@ -179,9 +184,9 @@ Module().then((mod) => {
   console.log("HEAPU8?", wasmModule.HEAPU8);
 
   /**
-   * Takes raw image data (either from local file upload or from peer) and 
+   * Takes raw image data (either from local file upload or from peer) and
    * prepares it for processing by WASM module. Handles P2P sharing of raw image
-   * data when local image is uploaded. 
+   * data when local image is uploaded.
    */
   processImageFile = (sourceData) => {
     let originalWidth, originalHeight, pixelData;
@@ -209,22 +214,22 @@ Module().then((mod) => {
       return;
     }
 
-    // Dimension validation - error detection 
+    // Dimension validation - error detection
     if (!originalWidth || !originalHeight || isNaN(originalWidth) || isNaN(originalHeight)) {
       console.error("Error: Image has invalid dimensions.", { originalWidth, originalHeight });
       alert("Error: The image has invalid dimensions (width or height is zero or not a number). Please try a different image.");
       return;
     }
 
-    // Determine if main canvas needs to be resized 
+    // Determine if main canvas needs to be resized
     const shouldUpdateCanvasDimensions = (originalWidth > maxWidth || originalHeight > maxHeight);
     maxWidth = Math.max(maxWidth, originalWidth);
     maxHeight = Math.max(maxHeight, originalHeight);
 
     // Ensure WASM output buffer is always allocated when canvas dimensions are set or changed
-    // This buffer will hold the final merged and processed image that is displayed on the main canvas 
+    // This buffer will hold the final merged and processed image that is displayed on the main canvas
     // !wasmOutputPtr condition to guarantee initial allocation
-    if (shouldUpdateCanvasDimensions || !wasmOutputPtr) { 
+    if (shouldUpdateCanvasDimensions || !wasmOutputPtr) {
         canvas.width = maxWidth;
         canvas.height = maxHeight;
         if (wasmOutputPtr) {              // If it was previously allocated, free the old buffer
@@ -239,23 +244,25 @@ Module().then((mod) => {
 
     // Send raw pixel data over PeerJS (if connections exist)
     // Only send if it's a local upload - DO NOT SEND OTHERWISE as this may cause circular sharing
-    if (sourceData instanceof ImageBitmap) { 
+    if (sourceData instanceof ImageBitmap) {
         connections.forEach(conn => {
             conn.send({
                 type: 'image_binary',
                 width: originalWidth,
                 height: originalHeight,
-                imageDataBuffer: pixelData.buffer
+                imageDataBuffer: pixelData.buffer,
+                // Include the current canvas dimensions of the sender
+                canvasWidth: canvas.width,
+                canvasHeight: canvas.height
             });
         });
     }
 
     /**
-     * Copy raw pixel data for current image (which will become a new layer) into 
-     * a temporary WASM memory location. Purpose: call the C++ function to cache 
-     * the pixel data information. 
-     */ 
-
+     * Copy raw pixel data for current image (which will become a new layer) into
+     * a temporary WASM memory location. Purpose: call the C++ function to cache
+     * the pixel data information.
+     */
 
     // Copy pixel data to WASM heap (for the layer)
     const len = pixelData.length;
@@ -266,10 +273,10 @@ Module().then((mod) => {
     // Call WASM to store the layer
     wasmModule.ccall("data_to_layer", null, ["number", "number", "number", "number"],
       [dataPtr, originalWidth, originalHeight, imageIdCounter]);
-    // Cleanup after data has been copied and cached in C++ 
+    // Cleanup after data has been copied and cached in C++
     wasmModule._free(dataPtr);
 
-    // Add layer to UI 
+    // Add layer to UI
     // Create thumbnail for loaded image
     const tempCanvasForUI = document.createElement("canvas");
     tempCanvasForUI.width = originalWidth;
@@ -279,46 +286,60 @@ Module().then((mod) => {
     tempCtxForUI.putImageData(imageDataForUIThumbnail, 0, 0);
     const imgSrcForUI = tempCanvasForUI.toDataURL();
 
-    // Add visual representation of layer to layer panel in HTML 
+    // Add visual representation of layer to layer panel in HTML
     addLayerToUI(imageIdCounter, imgSrcForUI);
-    // Track layer order 
+    // Track layer order
     uploadedLayerOrder.push(imageIdCounter);
-    // Increment counter for next image 
+    // Increment counter for next image
     imageIdCounter++;
 
     // Render the merged image on the main canvas
     renderMergedImage(uploadedLayerOrder);
   };
 
-  // Process image data received from another peer 
+  // Process image data received from another peer
   handleReceivedImage = (imageData) => {
-    maxWidth = Math.max(maxWidth, imageData.width);
-    maxHeight = Math.max(maxHeight, imageData.height);
-    processImageFile(imageData); 
+    // maxWidth and maxHeight are already updated in setupConnectionListeners based on sender's canvas dimensions
+    // Now ensure the canvas is resized if necessary using these updated dimensions.
+    const shouldUpdateCanvasDimensions = (imageData.width > canvas.width || imageData.height > canvas.height);
+
+    if (shouldUpdateCanvasDimensions || !wasmOutputPtr) {
+        canvas.width = maxWidth;
+        canvas.height = maxHeight;
+        if (wasmOutputPtr) {              // If it was previously allocated, free the old buffer
+          wasmModule._free(wasmOutputPtr);
+        }
+        const newLen = canvas.width * canvas.height * 4;
+        wasmOutputPtr = wasmModule._malloc(newLen);
+        wasmOutputHeap = new Uint8ClampedArray(wasmModule.HEAPU8.buffer, wasmOutputPtr, newLen);
+        processedImageData = new ImageData(wasmOutputHeap, canvas.width, canvas.height);
+        isImageReady = true;              // Set flag to true once buffers are ready
+    }
+    processImageFile(imageData);
   };
 
   /**
-   * Handles images uploaded locally. Processes them and shares them with peers. 
+   * Handles images uploaded locally. Processes them and shares them with peers.
    */
   document.getElementById("upload").addEventListener("change", (e) => {
     const files = e.target.files;
     if (!files.length) return;
 
-    // Convert to array so map can be used 
+    // Convert to array so map can be used
     let loadPromises = Array.from(files).map((file) => {
-      // For each file, transform it into a promise to handle concurrent uploads 
-      // createImageBitmap is a modern browser API that asynchronously decodes an image file 
-      // into an ImageBitmap object 
-      // An ImageBitmap is an efficient image representation for drawing to canvas or WebGL 
+      // For each file, transform it into a promise to handle concurrent uploads
+      // createImageBitmap is a modern browser API that asynchronously decodes an image file
+      // into an ImageBitmap object
+      // An ImageBitmap is an efficient image representation for drawing to canvas or WebGL
       return createImageBitmap(file).then(imageBitmap => {
-        // Send image data to peers 
-        // Add image as new layer in C++ 
-        // Add thumbnail to UI in Layers 
-        processImageFile(imageBitmap); 
+        // Send image data to peers
+        // Add image as new layer in C++
+        // Add thumbnail to UI in Layers
+        processImageFile(imageBitmap);
       });
     });
 
-    // Resolve only when all promises in loadPromises have been resolved. 
+    // Resolve only when all promises in loadPromises have been resolved.
     Promise.all(loadPromises).then(() => {
         // Once all images have been processed and send to peers, redraw canvas to reflect current state
         renderMergedImage(uploadedLayerOrder);
@@ -326,15 +347,15 @@ Module().then((mod) => {
   });
 
   /**
-   * Takes individual image layers and merge them together for final rendering. 
-   * Called whenever a change occurs that requires canvas to be updaded, such as 
-   * when a new image is loaded or a filter is applied. 
-   * 
-   * Notice that instead of rendring every layer, only the layer order information 
-   * is passed - since it is guaranteed that the image data is stored in C++, we 
-   * only need to reference the image by ID instead of all pixel information. This 
-   * saves a lot of time in copying image data to and from memory, and creates a 
-   * clear separation between JS and C++. 
+   * Takes individual image layers and merge them together for final rendering.
+   * Called whenever a change occurs that requires canvas to be updaded, such as
+   * when a new image is loaded or a filter is applied.
+   *
+   * Notice that instead of rendring every layer, only the layer order information
+   * is passed - since it is guaranteed that the image data is stored in C++, we
+   * only need to reference the image by ID instead of all pixel information. This
+   * saves a lot of time in copying image data to and from memory, and creates a
+   * clear separation between JS and C++.
    */
   function renderMergedImage(layerOrder) {
     if (!wasmOutputPtr) {
@@ -356,7 +377,7 @@ Module().then((mod) => {
   }
 
   /**
-   * Add layer to layer list in UI. 
+   * Add layer to layer list in UI.
    */
   function addLayerToUI(id, src) {
     const li = document.createElement("li");
@@ -371,7 +392,7 @@ Module().then((mod) => {
   }
 
   /**
-   * Change selected layer. 
+   * Change selected layer.
    */
   function selectLayer(layerId) {
     selectedLayerId = layerId;
@@ -386,16 +407,16 @@ Module().then((mod) => {
   }
 
   /**
-   * Executes image manipulation operations on current canvas and synchronize 
-   * these operations across all connected peers. 
-   * 
-   * operationType is a string that identifies tha name of the operation to perform 
+   * Executes image manipulation operations on current canvas and synchronize
+   * these operations across all connected peers.
+   *
+   * operationType is a string that identifies tha name of the operation to perform
    * payload is an object containing any parameters required for the specific operationType
    * isRemote = false is a flag that indicates if the operation was initiated by the local user
-   * 
-   * If isRemote = false (the deault), then the operation was initiated by the local user, 
-   * and the operation needs to be sent to other connected peers. 
-   * If isRemote = true, then the operation was received from another peer. In this case, 
+   *
+   * If isRemote = false (the deault), then the operation was initiated by the local user,
+   * and the operation needs to be sent to other connected peers.
+   * If isRemote = true, then the operation was received from another peer. In this case,
    * the operation is executed locally but NOT re-sent back to the network, preventing infinite loops.
    */
   applyOperationLocally = (operationType, payload, isRemote = false) => {
@@ -407,25 +428,32 @@ Module().then((mod) => {
         return;
     }
 
+    // Get selected layer for operation (either current local layer, or remotely defined layer)
     const targetLayerId = payload.layerId !== undefined ? payload.layerId : selectedLayerId;
 
     const executeAndRender = (cppFunctionName, ...args) => {
+      // Prepare layer order for WASM
       const orderPtr = wasmModule._malloc(uploadedLayerOrder.length * 4);
       const orderHeap = new Int32Array(wasmModule.HEAPU8.buffer, orderPtr, uploadedLayerOrder.length);
       for (let i = 0; i < uploadedLayerOrder.length; i++) {
         orderHeap[i] = uploadedLayerOrder[i];
       }
 
+      // Construct arguments for WASM call
       const allArgs = [wasmOutputPtr, canvas.width, canvas.height, orderPtr, uploadedLayerOrder.length, targetLayerId, ...args];
       const argTypes = ["number", "number", "number", "number", "number", "number", ...args.map(arg => typeof arg === 'number' ? 'number' : 'float')];
 
+      // Call WASM function
       wasmModule.ccall(cppFunctionName, null, argTypes, allArgs);
 
+      // Update canvas with processed image
       ctx.putImageData(processedImageData, 0, 0);
 
+      // Free temporary WASM memory
       wasmModule._free(orderPtr);
     };
 
+    // Operation dispath
     switch (operationType) {
       case 'monochrome_average':
       case 'monochrome_luminosity':
@@ -452,13 +480,14 @@ Module().then((mod) => {
         console.warn(`Unknown operation type received: ${operationType}`);
     }
 
+    // Only send operation to peers if operation was initiated by the local user
     if (!isRemote) {
         sendOperationToPeers(operationType, payload);
     }
   };
 
 
-  // --- Event Listeners: Modified to call applyOperationLocally with operation details ---
+  // Event Listeners: call applyOperationLocally with operation details to ensure both applied locally and remotely 
 
   document.getElementById("monochrome_average")
     .addEventListener("click", () => timeOperation("Monochrome (Average)", () => applyOperationLocally("monochrome_average", { layerId: selectedLayerId })));
@@ -578,5 +607,4 @@ Module().then((mod) => {
       applyOperationLocally("quad_compression", { layerId: selectedLayerId, newWidth, newHeight });
     });
   });
-
 });
