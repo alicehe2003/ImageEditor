@@ -174,11 +174,11 @@ Images can be moved around on the canvas area.
 
 ## TODO + ideas 
 
-- Update README with demos of each filter, example use cases 
 - Use SIMD instructions for WASM 
 - Open CV library 
 - WebGL 
-- Real-time collaborate system, set up web socket 
+- Real-time collaborate system, set up web socket - UPDATE README 
+- Testing, specifically for race conditions and concurrency issues from remote instructions and data 
 
 Links to consider 
 
@@ -195,6 +195,7 @@ https://silvia-odwyer.github.io/photon/demo.html
 # Known bugs
 
 - Browser sometimes refresh itself, losing all data. Likely cause: functions not fully loaded before uploading image, causing a refresh. Needs more investigation. 
+- Possible race condition with canvas size update from remote peer 
 
 
 
