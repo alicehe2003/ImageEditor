@@ -195,7 +195,8 @@ https://silvia-odwyer.github.io/photon/demo.html
 # Known bugs
 
 - Browser sometimes refresh itself, losing all data. Likely cause: functions not fully loaded before uploading image, causing a refresh. Needs more investigation. 
-- Possible race condition with canvas size update from remote peer 
+- When leader disconnects peers are not informed. Establish a heartbeat. 
+- Image load time and network calls take too long. Compress data before sending it over the network, and decompress it upon receiving. 
 
 
 
