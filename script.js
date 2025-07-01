@@ -30,6 +30,19 @@ let isImageReady = false;
 let peer;
 let connections = []; // To store multiple connections
 
+// Concurrency control variables
+let isLeader = false;
+let leaderId = null;
+let peerIds = []; // To keep track of all connected peer IDs, including self
+let requestQueue = []; // Queue for leader's processing of follower requests
+let isLeaderProcessingRequest = false; // Flag to prevent concurrent leader processing
+
+// Follower-specific variables for request management
+let pendingRequest = null; // Stores the current request a follower is waiting for approval on
+let requestTimeout = null; // Timer for the pending request
+
+const REQUEST_TIMEOUT_MS = 10000; // 5 seconds timeout for follower requests
+
 // Declare processImageFile, handleReceivedImage, and applyOperationLocally
 // in a scope accessible by setupConnectionListeners and Module().then block
 let processImageFile;
@@ -52,11 +65,18 @@ function initializePeer() {
   peer.on('open', function(id) {
     console.log('My peer ID is: ' + id);
     alert('Your Peer ID: ' + id + '\nShare this ID with others to connect.');
+    peerIds.push(id); // Add self ID to the list
+    updateLeader(); // Determine initial leader
   });
   // Triggers when another peer successfully attempts to connect to this client
   peer.on('connection', function(conn) {
     console.log('Incoming connection from: ' + conn.peer);
     connections.push(conn);
+    // Add new peer ID only if not already present
+    if (!peerIds.includes(conn.peer)) {
+        peerIds.push(conn.peer); // Add new peer ID
+    }
+    updateLeader(); // Re-establish leader on new connection
     setupConnectionListeners(conn);
   });
   // Catches errors with PeerJS client
@@ -76,6 +96,11 @@ function connectToPeer() {
     conn.on('open', function() {
       console.log('Connected to: ' + peerId);
       connections.push(conn);
+      // Add connected peer ID only if not already present
+      if (!peerIds.includes(peerId)) {
+        peerIds.push(peerId); // Add connected peer ID
+      }
+      updateLeader(); // Re-establish leader on new connection
       setupConnectionListeners(conn);
     });
     conn.on('error', function(err) {
@@ -85,7 +110,38 @@ function connectToPeer() {
 }
 
 /**
- * Send all operations to all connected peers.
+ * Determines the leader among connected peers. The peer with the lowest ID becomes the leader.
+ */
+function updateLeader() {
+  const sortedPeerIds = [...peerIds].sort();
+  const oldLeaderId = leaderId;
+  leaderId = sortedPeerIds[0];
+  isLeader = (peer.id === leaderId);
+
+  if (oldLeaderId !== leaderId) {
+    console.log(`Leader changed from ${oldLeaderId || 'N/A'} to ${leaderId}. I am ${isLeader ? 'the LEADER' : 'a FOLLOWER'}.`);
+    // If leader changed and I am a follower, re-evaluate pending request
+    if (!isLeader && pendingRequest) {
+      console.log(`Leader changed. My pending request (${pendingRequest.requestType}) will be retried with the new leader.`);
+      clearTimeout(requestTimeout); // Clear old timeout
+      requestTimeout = null; // Reset timeout handle
+      const requestToRetry = pendingRequest; // Store it for retry
+      pendingRequest = null; // Clear pending request
+      // Immediately retry the request with the new leader
+      sendRequestToLeader(requestToRetry.requestType, requestToRetry.payload);
+    }
+  } else {
+    console.log(`Current leader is ${leaderId}. I am ${isLeader ? 'the LEADER' : 'a FOLLOWER'}.`);
+  }
+
+  // If a new leader is elected and this peer is the new leader, process any pending requests
+  if (isLeader && oldLeaderId !== leaderId) {
+    processRequestQueue();
+  }
+}
+
+/**
+ * Send an operation to all connected peers.
  */
 function sendOperationToPeers(operationType, payload) {
   connections.forEach(conn => {
@@ -98,6 +154,157 @@ function sendOperationToPeers(operationType, payload) {
 }
 
 /**
+ * Send image data to all connected peers.
+ */
+function sendImageToPeers(width, height, imageDataBuffer, canvasWidth, canvasHeight) {
+  connections.forEach(conn => {
+    conn.send({
+      type: 'image_binary',
+      width: width,
+      height: height,
+      imageDataBuffer: imageDataBuffer,
+      // Include the current canvas dimensions of the sender
+      canvasWidth: canvasWidth,
+      canvasHeight: canvasHeight
+    });
+  });
+}
+
+/**
+ * Send a request to the leader.
+ */
+function sendRequestToLeader(requestType, payload) {
+  if (isLeader) {
+    console.warn("I am the leader, no need to send request to myself.");
+    return;
+  }
+  if (pendingRequest) {
+    console.warn("Already have a pending request. Please wait for the current one to complete.");
+    return;
+  }
+
+  const leaderConn = connections.find(conn => conn.peer === leaderId);
+  if (leaderConn) {
+    console.log(`Peer ${peer.id} asking for ${requestType} request to leader ${leaderId}.`);
+    pendingRequest = { requestType, payload }; // Store the pending request
+    requestTimeout = setTimeout(() => {
+      console.error(`Request for ${requestType} to leader ${leaderId} timed out! Assuming leader disconnected.`);
+      // Leader likely disconnected or failed to respond.
+      // Clear pending request and trigger leader re-election.
+      pendingRequest = null;
+      requestTimeout = null;
+      // Force an update to trigger leader re-election if the leader is truly gone
+      // This might not be strictly necessary if conn.on('close') already handles it,
+      // but it's a good safeguard for timeout scenarios.
+      if (!connections.some(conn => conn.peer === leaderId)) { // If the leader connection is truly gone
+          console.log("Leader connection not found, triggering leader re-election.");
+          peerIds = peerIds.filter(id => id !== leaderId); // Manually remove timed-out leader from list
+          updateLeader(); // Re-elect leader
+      }
+      alert("Leader did not respond. A new leader will be elected or try connecting again.");
+    }, REQUEST_TIMEOUT_MS);
+
+    leaderConn.send({
+      type: 'request',
+      requestType: requestType,
+      payload: payload,
+      fromPeerId: peer.id
+    });
+  } else {
+    console.error(`Could not find connection to leader ${leaderId}. Cannot send request.`);
+    alert("Cannot connect to leader. Please ensure leader is online and try connecting again.");
+    pendingRequest = null; // Clear pending request if no leader connection found
+    clearTimeout(requestTimeout); // Clear timeout
+    requestTimeout = null; // Reset timeout handle
+  }
+}
+
+/**
+ * Send an approval or rejection to a follower.
+ */
+function sendResponseToFollower(followerId, requestType, approved, payload = {}) {
+  const followerConn = connections.find(conn => conn.peer === followerId);
+  if (followerConn) {
+    console.log(`Leader ${peer.id} sending ${approved ? 'approval' : 'rejection'} for ${requestType} to follower ${followerId}.`);
+    followerConn.send({
+      type: 'response',
+      requestType: requestType,
+      approved: approved,
+      payload: payload
+    });
+  } else {
+    console.error(`Could not find connection to follower ${followerId}.`);
+  }
+}
+
+/**
+ * Handles incoming requests from followers if this peer is the leader.
+ */
+async function handleFollowerRequest(data) {
+  console.log(`Leader ${peer.id} received a ${data.requestType} request from ${data.fromPeerId}.`);
+  // Add request to queue
+  requestQueue.push(data);
+  processRequestQueue();
+}
+
+/**
+ * Processes requests in the queue if the leader is not currently processing another request.
+ */
+async function processRequestQueue() {
+  if (isLeader && !isLeaderProcessingRequest && requestQueue.length > 0) {
+    isLeaderProcessingRequest = true;
+    const request = requestQueue.shift(); // Get the first request
+    const { requestType, payload, fromPeerId } = request;
+
+    switch (requestType) {
+      case 'upload_image_request':
+        // Leader processes image locally
+        const imageDataForLeader = new ImageData(new Uint8ClampedArray(payload.imageDataBuffer), payload.width, payload.height);
+        // Using a promise to ensure processImageFile completes before sending approval/broadcast
+        await new Promise(resolve => {
+          // Process the image. We assume processImageFile might have async parts or takes time.
+          processImageFile(imageDataForLeader, true); // true to indicate it's a leader's processing from a follower request
+          resolve();
+        });
+
+        // Then leader sends approval to the follower
+        sendResponseToFollower(fromPeerId, 'upload_image_request', true, {
+          width: payload.width,
+          height: payload.height,
+          imageDataBuffer: payload.imageDataBuffer,
+          canvasWidth: payload.canvasWidth,
+          canvasHeight: payload.canvasHeight,
+          imageId: imageIdCounter -1 // The ID assigned to the new image layer
+        });
+
+        // Leader then broadcasts the image to all other followers
+        sendImageToPeers(payload.width, payload.height, payload.imageDataBuffer, payload.canvasWidth, payload.canvasHeight);
+        break;
+      case 'apply_operation_request':
+        // Leader applies operation locally
+        applyOperationLocally(payload.operationType, payload.payload, true); // true for isRemote, as it originates from another peer's request
+
+        // Leader then sends approval to the follower
+        sendResponseToFollower(fromPeerId, 'apply_operation_request', true, {
+          operationType: payload.operationType,
+          payload: payload.payload
+        });
+
+        // Leader then broadcasts the operation to all other followers
+        sendOperationToPeers(payload.operationType, payload.payload);
+        break;
+      default:
+        console.warn(`Unknown request type received by leader: ${requestType}`);
+        sendResponseToFollower(fromPeerId, requestType, false); // Reject unknown requests
+    }
+    isLeaderProcessingRequest = false;
+    // Process next request in queue
+    processRequestQueue(); // Immediately try to process the next request
+  }
+}
+
+
+/**
  * Defines how application reacts when data is received from a connected peer, or when
  * a connection is closed.
  */
@@ -106,7 +313,6 @@ function setupConnectionListeners(conn) {
   // The structure of data depends on what the sender (conn.send()) has sent
   conn.on('data', function(data) {
     console.log('Received data:', data);
-    // Handles messages that represent raw image data
     if (data.type === 'image_binary') {
       // Extract image data buffer from received message
       const receivedDataFromPeer = data.imageDataBuffer;
@@ -140,6 +346,32 @@ function setupConnectionListeners(conn) {
         } else {
             console.error("applyOperationLocally is not yet defined!");
         }
+    } else if (data.type === 'request' && isLeader) {
+        // Only the leader processes requests
+        handleFollowerRequest(data);
+    } else if (data.type === 'response' && !isLeader) {
+        // Only followers process responses
+        // Clear the timeout and pending request upon receiving a response
+        clearTimeout(requestTimeout);
+        requestTimeout = null;
+        pendingRequest = null;
+
+        console.log(`Peer ${peer.id} received approval for ${data.requestType} from leader ${leaderId}.`);
+        if (data.approved) {
+          if (data.requestType === 'upload_image_request') {
+            // Reconstruct and process the image, but don't re-send it
+            // The image data buffer sent in the response is an ArrayBuffer, convert it
+            const receivedUint8ClampedArray = new Uint8ClampedArray(data.payload.imageDataBuffer);
+            const receivedImageData = new ImageData(receivedUint8ClampedArray, data.payload.width, data.payload.height);
+            processImageFile(receivedImageData, false, data.payload.imageId); // false for isLocalUpload, providing imageId
+          } else if (data.requestType === 'apply_operation_request') {
+            // Apply the operation received from leader's approval
+            applyOperationLocally(data.payload.operationType, data.payload.payload, true); // isRemote is true
+          }
+        } else {
+          console.warn(`Request for ${data.requestType} was rejected by leader.`);
+          alert(`Your request for ${data.requestType} was rejected by the leader.`);
+        }
     }
   });
 
@@ -147,8 +379,9 @@ function setupConnectionListeners(conn) {
   conn.on('close', function() {
     console.log('Connection closed with: ' + conn.peer);
     // Updates global connections array by removing the closed connection
-    // Ensures application only attempts to send message to active peers
     connections = connections.filter(c => c.peer !== conn.peer);
+    peerIds = peerIds.filter(id => id !== conn.peer); // Remove closed peer ID
+    updateLeader(); // Re-establish leader on connection close
   });
 }
 
@@ -187,8 +420,12 @@ Module().then((mod) => {
    * Takes raw image data (either from local file upload or from peer) and
    * prepares it for processing by WASM module. Handles P2P sharing of raw image
    * data when local image is uploaded.
+   *
+   * @param {ImageBitmap|ImageData} sourceData - The image data to process.
+   * @param {boolean} isLeaderProcessingFollowerRequest - True if this is the leader processing a request from a follower.
+   * @param {number} [predefinedImageId] - Optional image ID to use for the new layer, useful for syncing follower images.
    */
-  processImageFile = (sourceData) => {
+  processImageFile = (sourceData, isLeaderProcessingFollowerRequest = false, predefinedImageId = null) => {
     let originalWidth, originalHeight, pixelData;
 
     // When image is uploaded locally via the "ADD IMAGE" button
@@ -205,7 +442,7 @@ Module().then((mod) => {
       const tempImageData = tempCtx.getImageData(0, 0, originalWidth, originalHeight);
       pixelData = tempImageData.data;
     } else if (sourceData instanceof ImageData) {
-      // When image is shared by peer
+      // When image is shared by peer or approved by leader
       originalWidth = sourceData.width;
       originalHeight = sourceData.height;
       pixelData = sourceData.data;
@@ -242,21 +479,12 @@ Module().then((mod) => {
         isImageReady = true;              // Set flag to true once buffers are ready
     }
 
-    // Send raw pixel data over PeerJS (if connections exist)
-    // Only send if it's a local upload - DO NOT SEND OTHERWISE as this may cause circular sharing
-    if (sourceData instanceof ImageBitmap) {
-        connections.forEach(conn => {
-            conn.send({
-                type: 'image_binary',
-                width: originalWidth,
-                height: originalHeight,
-                imageDataBuffer: pixelData.buffer,
-                // Include the current canvas dimensions of the sender
-                canvasWidth: canvas.width,
-                canvasHeight: canvas.height
-            });
-        });
-    }
+    // Assign imageId. If it's a predefined ID (from leader's approval), use it. Otherwise, use counter.
+    // If it's a leader processing a follower's request, the imageIdCounter is already incremented on the follower.
+    // For syncing, we need to ensure the leader and follower use the same ID.
+    // This logic assumes `imageIdCounter` is the next available ID.
+    const currentImageId = predefinedImageId !== null ? predefinedImageId : imageIdCounter;
+
 
     /**
      * Copy raw pixel data for current image (which will become a new layer) into
@@ -272,7 +500,7 @@ Module().then((mod) => {
 
     // Call WASM to store the layer
     wasmModule.ccall("data_to_layer", null, ["number", "number", "number", "number"],
-      [dataPtr, originalWidth, originalHeight, imageIdCounter]);
+      [dataPtr, originalWidth, originalHeight, currentImageId]);
     // Cleanup after data has been copied and cached in C++
     wasmModule._free(dataPtr);
 
@@ -286,12 +514,18 @@ Module().then((mod) => {
     tempCtxForUI.putImageData(imageDataForUIThumbnail, 0, 0);
     const imgSrcForUI = tempCanvasForUI.toDataURL();
 
-    // Add visual representation of layer to layer panel in HTML
-    addLayerToUI(imageIdCounter, imgSrcForUI);
-    // Track layer order
-    uploadedLayerOrder.push(imageIdCounter);
-    // Increment counter for next image
-    imageIdCounter++;
+    // Only add if not already present (prevents duplicates when leader approves)
+    if (!uploadedLayerOrder.includes(currentImageId)) {
+        addLayerToUI(currentImageId, imgSrcForUI);
+        // Track layer order
+        uploadedLayerOrder.push(currentImageId);
+        // Only increment counter if it's a new image being processed (local upload or leader processing)
+        // Ensure imageIdCounter is advanced only once for a given image, whether local or remote
+        if (predefinedImageId === null) { // This means it's a new image locally initiating or leader processing
+            imageIdCounter++;
+        }
+    }
+
 
     // Render the merged image on the main canvas
     renderMergedImage(uploadedLayerOrder);
@@ -315,34 +549,46 @@ Module().then((mod) => {
         processedImageData = new ImageData(wasmOutputHeap, canvas.width, canvas.height);
         isImageReady = true;              // Set flag to true once buffers are ready
     }
+    // Note: When a follower receives an image broadcast by the leader, it should process it without
+    // attempting to re-send it or request approval. The `processImageFile` function
+    // with its default parameters (isLeaderProcessingFollowerRequest=false, predefinedImageId=null)
+    // will add it as a new layer.
+    // The imageIdCounter will correctly increment for the receiving peer as well.
     processImageFile(imageData);
   };
 
   /**
-   * Handles images uploaded locally. Processes them and shares them with peers.
+   * Handles images uploaded locally. Processes them and shares them with peers (or requests leader approval).
    */
   document.getElementById("upload").addEventListener("change", (e) => {
     const files = e.target.files;
     if (!files.length) return;
 
-    // Convert to array so map can be used
-    let loadPromises = Array.from(files).map((file) => {
-      // For each file, transform it into a promise to handle concurrent uploads
-      // createImageBitmap is a modern browser API that asynchronously decodes an image file
-      // into an ImageBitmap object
-      // An ImageBitmap is an efficient image representation for drawing to canvas or WebGL
-      return createImageBitmap(file).then(imageBitmap => {
-        // Send image data to peers
-        // Add image as new layer in C++
-        // Add thumbnail to UI in Layers
-        processImageFile(imageBitmap);
-      });
-    });
+    Array.from(files).forEach((file) => {
+      createImageBitmap(file).then(imageBitmap => {
+        const tempCanvas = document.createElement("canvas");
+        tempCanvas.width = imageBitmap.width;
+        tempCanvas.height = imageBitmap.height;
+        const tempCtx = tempCanvas.getContext("2d", { willReadFrequently: true });
+        tempCtx.drawImage(imageBitmap, 0, 0);
+        const tempImageData = tempCtx.getImageData(0, 0, imageBitmap.width, imageBitmap.height);
+        const pixelData = tempImageData.data;
 
-    // Resolve only when all promises in loadPromises have been resolved.
-    Promise.all(loadPromises).then(() => {
-        // Once all images have been processed and send to peers, redraw canvas to reflect current state
-        renderMergedImage(uploadedLayerOrder);
+        if (isLeader) {
+          // If I am the leader, process locally and then broadcast
+          processImageFile(imageBitmap);
+          sendImageToPeers(imageBitmap.width, imageBitmap.height, pixelData.buffer, canvas.width, canvas.height);
+        } else {
+          // If I am a follower, request leader's approval
+          sendRequestToLeader('upload_image_request', {
+            width: imageBitmap.width,
+            height: imageBitmap.height,
+            imageDataBuffer: pixelData.buffer,
+            canvasWidth: canvas.width,
+            canvasHeight: canvas.height
+          });
+        }
+      });
     });
   });
 
@@ -414,7 +660,7 @@ Module().then((mod) => {
    * payload is an object containing any parameters required for the specific operationType
    * isRemote = false is a flag that indicates if the operation was initiated by the local user
    *
-   * If isRemote = false (the deault), then the operation was initiated by the local user,
+   * If isRemote = false (the default), then the operation was initiated by the local user,
    * and the operation needs to be sent to other connected peers.
    * If isRemote = true, then the operation was received from another peer. In this case,
    * the operation is executed locally but NOT re-sent back to the network, preventing infinite loops.
@@ -480,66 +726,75 @@ Module().then((mod) => {
         console.warn(`Unknown operation type received: ${operationType}`);
     }
 
-    // Only send operation to peers if operation was initiated by the local user
-    if (!isRemote) {
+    // Only send operation to peers if operation was initiated by the local user and this peer is the leader
+    // For remote operations (isRemote is true), it means the leader has already processed and broadcasted it.
+    if (!isRemote && isLeader) {
         sendOperationToPeers(operationType, payload);
     }
   };
 
 
-  // Event Listeners: call applyOperationLocally with operation details to ensure both applied locally and remotely 
+  // Event Listeners: call applyOperationLocally with operation details to ensure both applied locally and remotely
+
+  // Helper function to handle operation clicks
+  const handleOperationClick = (operationType, getPayload) => {
+    timeOperation(operationType, () => {
+      const payload = getPayload();
+      if (isLeader) {
+        applyOperationLocally(operationType, payload); // Leader applies and broadcasts
+      } else {
+        // Follower requests leader approval
+        sendRequestToLeader('apply_operation_request', { operationType, payload });
+      }
+    });
+  };
+
 
   document.getElementById("monochrome_average")
-    .addEventListener("click", () => timeOperation("Monochrome (Average)", () => applyOperationLocally("monochrome_average", { layerId: selectedLayerId })));
+    .addEventListener("click", () => handleOperationClick("monochrome_average", () => ({ layerId: selectedLayerId })));
 
   document.getElementById("monochrome_luminosity")
-    .addEventListener("click", () => timeOperation("Monochrome (Luminosity)", () => applyOperationLocally("monochrome_luminosity", { layerId: selectedLayerId })));
+    .addEventListener("click", () => handleOperationClick("monochrome_luminosity", () => ({ layerId: selectedLayerId })));
 
   document.getElementById("monochrome_lightness")
-    .addEventListener("click", () => timeOperation("Monochrome (Lightness)", () => applyOperationLocally("monochrome_lightness", { layerId: selectedLayerId })));
+    .addEventListener("click", () => handleOperationClick("monochrome_lightness", () => ({ layerId: selectedLayerId })));
 
   document.getElementById("monochrome_itu")
-    .addEventListener("click", () => timeOperation("Monochrome (ITU-R)", () => applyOperationLocally("monochrome_itu", { layerId: selectedLayerId })));
+    .addEventListener("click", () => handleOperationClick("monochrome_itu", () => ({ layerId: selectedLayerId })));
 
 
   document.getElementById("blur_gaussian").addEventListener("click", () => {
-    timeOperation("Gaussian Blur", () => {
-      const sigma = parseFloat(document.getElementById("sigma").value);
-      const kernelSize = parseInt(document.getElementById("kernel").value);
+    const sigma = parseFloat(document.getElementById("sigma").value);
+    const kernelSize = parseInt(document.getElementById("kernel").value);
 
-      if (isNaN(sigma) || sigma < 0 || sigma > 50) {
-        alert("Sigma must be between 0 and 50");
-        return;
-      }
-      if (isNaN(kernelSize) || kernelSize < 1 || kernelSize > 50 || kernelSize % 2 === 0) {
-        alert("Kernel size must an odd number be between 1 and 50");
-        return;
-      }
-      applyOperationLocally("gaussian_blur", { layerId: selectedLayerId, sigma, kernelSize });
-    });
+    if (isNaN(sigma) || sigma < 0 || sigma > 50) {
+      alert("Sigma must be between 0 and 50");
+      return;
+    }
+    if (isNaN(kernelSize) || kernelSize < 1 || kernelSize > 50 || kernelSize % 2 === 0) {
+      alert("Kernel size must an odd number be between 1 and 50");
+      return;
+    }
+    handleOperationClick("gaussian_blur", () => ({ layerId: selectedLayerId, sigma, kernelSize }));
   });
 
   document.getElementById("edge_sobel").addEventListener("click", () => {
-    timeOperation("Edge Detection (Sobel)", () => {
-      applyOperationLocally("edge_sobel", { layerId: selectedLayerId });
-    });
+    handleOperationClick("edge_sobel", () => ({ layerId: selectedLayerId }));
   });
 
   document.getElementById("edge_laplacian_of_gaussian").addEventListener("click", () => {
-    timeOperation("Edge Detection (LoG)", () => {
-      const sigma = parseFloat(document.getElementById('log_sigma').value);
-      let kernelSize = parseInt(document.getElementById('log_kernel').value);
+    const sigma = parseFloat(document.getElementById('log_sigma').value);
+    let kernelSize = parseInt(document.getElementById('log_kernel').value);
 
-      if (isNaN(sigma) || sigma < 0 || sigma > 50) {
-        alert("Sigma must be between 0 and 50");
-        return;
-      }
-      if (isNaN(kernelSize) || kernelSize < 1 || kernelSize > 50 || kernelSize % 2 === 0) {
-        alert("Kernel size must an odd number be between 1 and 50");
-        return;
-      }
-      applyOperationLocally("edge_laplacian_of_gaussian", { layerId: selectedLayerId, sigma, kernelSize });
-    });
+    if (isNaN(sigma) || sigma < 0 || sigma > 50) {
+      alert("Sigma must be between 0 and 50");
+      return;
+    }
+    if (isNaN(kernelSize) || kernelSize < 1 || kernelSize > 50 || kernelSize % 2 === 0) {
+      alert("Kernel size must an odd number be between 1 and 50");
+      return;
+    }
+    handleOperationClick("edge_laplacian_of_gaussian", () => ({ layerId: selectedLayerId, sigma, kernelSize }));
   });
 
   canvas.addEventListener("click", (e) => {
@@ -550,21 +805,19 @@ Module().then((mod) => {
     const x = Math.floor((e.clientX - rect.left) * scaleX);
     const y = Math.floor((e.clientY - rect.top) * scaleY);
 
-    timeOperation("Bucket Fill", () => {
-      const rgbaStr = document.getElementById("rgba").value;
-      const match = rgbaStr.match(/rgba?\((\d+),\s*(\d+),\s*(\d+),\s*(\d+\.?\d*)\)/);
-      if (!match) {
-        alert("Invalid RGBA format");
-        return;
-      }
-      const r = parseInt(match[1]);
-      const g = parseInt(match[2]);
-      const b = parseInt(match[3]);
-      const a = Math.round(parseFloat(match[4]) * 255);
-      const threshold = parseFloat(document.getElementById("error-threshold").value);
+    const rgbaStr = document.getElementById("rgba").value;
+    const match = rgbaStr.match(/rgba?\((\d+),\s*(\d+),\s*(\d+),\s*(\d+\.?\d*)\)/);
+    if (!match) {
+      alert("Invalid RGBA format");
+      return;
+    }
+    const r = parseInt(match[1]);
+    const g = parseInt(match[2]);
+    const b = parseInt(match[3]);
+    const a = Math.round(parseFloat(match[4]) * 255);
+    const threshold = parseFloat(document.getElementById("error-threshold").value);
 
-      applyOperationLocally("bucket_fill", { layerId: selectedLayerId, x, y, r, g, b, a, threshold });
-    });
+    handleOperationClick("bucket_fill", () => ({ layerId: selectedLayerId, x, y, r, g, b, a, threshold }));
   });
 
   const saveToggleBtn = document.getElementById("save-toggle");
@@ -596,15 +849,13 @@ Module().then((mod) => {
   });
 
   document.getElementById("resize_button").addEventListener("click", () => {
-    timeOperation("Resize", () => {
-      const newWidth = parseInt(document.getElementById("new_width").value);
-      const newHeight = parseInt(document.getElementById("new_height").value);
+    const newWidth = parseInt(document.getElementById("new_width").value);
+    const newHeight = parseInt(document.getElementById("new_height").value);
 
-      if (isNaN(newWidth) || isNaN(newHeight) || newWidth <= 0 || newHeight <= 0) {
-        alert("Please enter valid width and height values.");
-        return;
-      }
-      applyOperationLocally("quad_compression", { layerId: selectedLayerId, newWidth, newHeight });
-    });
+    if (isNaN(newWidth) || isNaN(newHeight) || newWidth <= 0 || newHeight <= 0) {
+      alert("Please enter valid width and height values.");
+      return;
+    }
+    handleOperationClick("quad_compression", () => ({ layerId: selectedLayerId, newWidth, newHeight }));
   });
 });
