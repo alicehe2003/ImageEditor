@@ -52,6 +52,23 @@ let handleReceivedImage;
 let applyOperationLocally;
 
 /**
+ * Function to handle peer disconnection and cleanup.
+ * Centralizes logic for removing peer from lists and updating UI.
+ */
+function handlePeerDisconnect(disconnectedPeerId) {
+  console.log(`Connection close with: ${disconnectedPeerId} detected. Cleaning up resources.`);
+  
+  // Remove the peer from the global connections array
+  connections = connections.filter(conn => conn.peer !== disconnectedPeerId);
+  
+  // Remove the peer from the global peerIds array
+  peerIds = peerIds.filter(id => id !== disconnectedPeerId);
+
+  // Update the leader status, as a disconnection might require a new election
+  updateLeader(); 
+}
+
+/**
  * Set up and configure the PeerJS client in the browser, allowing it to
  * connect to a PeerJS signaling server and then establick P2P connections
  * with other clients.
@@ -85,6 +102,11 @@ function initializePeer() {
   peer.on('error', function(err) {
     console.error('PeerJS error:', err);
   });
+  // The 'disconnected' event indicates a loss of connection to the PeerJS signaling server,
+  // not necessarily a peer tab closing. We rely on iceConnectionState for peer disconnections.
+  peer.on('disconnected', () => {
+    console.log('Peer disconnected from signaling server.');
+  });
 }
 
 /**
@@ -94,6 +116,12 @@ function initializePeer() {
 function connectToPeer() {
   const peerId = prompt("Enter Peer ID to connect to:");
   if (peerId) {
+    // Prevent connecting to self or already connected peers
+    if (peerId === peer.id || connections.some(conn => conn.peer === peerId)) {
+      alert("Already connected to this peer or it is your own ID.");
+      return;
+    }
+
     const conn = peer.connect(peerId);
     conn.on('open', function() {
       console.log('Connected to: ' + peerId);
@@ -104,9 +132,22 @@ function connectToPeer() {
       }
       updateLeader(); // Re-establish leader on new connection
       setupConnectionListeners(conn);
+
+      // Add ICE connection state change listener for reliable disconnection detection
+      if (conn.peerConnection) {
+        conn.peerConnection.oniceconnectionstatechange = () => {
+          console.log(`ICE connection state for ${conn.peer} is: ${conn.peerConnection.iceConnectionState}`);
+          if (conn.peerConnection.iceConnectionState === 'disconnected' || 
+              conn.peerConnection.iceConnectionState === 'failed' || 
+              conn.peerConnection.iceConnectionState === 'closed') {
+            handlePeerDisconnect(conn.peer);
+          }
+        };
+      }
     });
     conn.on('error', function(err) {
       console.error('Connection error:', err);
+      handlePeerDisconnect(conn.peer); // Handle disconnection on error
     });
   }
 }
@@ -122,6 +163,7 @@ function updateLeader() {
 
   if (oldLeaderId !== leaderId) {
     console.log(`Leader changed from ${oldLeaderId || 'N/A'} to ${leaderId}. I am ${isLeader ? 'the LEADER' : 'a FOLLOWER'}.`);
+
     // If leader changed and I am a follower, re-evaluate pending request
     if (!isLeader && pendingRequest) {
       console.log(`Leader changed. My pending request (${pendingRequest.requestType}) will be retried with the new leader.`);
@@ -379,11 +421,25 @@ function setupConnectionListeners(conn) {
 
   // Triggers when connection with specific peer is closed
   conn.on('close', function() {
-    console.log('Connection closed with: ' + conn.peer);
-    // Updates global connections array by removing the closed connection
-    connections = connections.filter(c => c.peer !== conn.peer);
-    peerIds = peerIds.filter(id => id !== conn.peer); // Remove closed peer ID
-    updateLeader(); // Re-establish leader on connection close
+    handlePeerDisconnect(conn.peer);
+  });
+
+  // Add ICE connection state change listener for reliable disconnection detection
+  if (conn.peerConnection) {
+    conn.peerConnection.oniceconnectionstatechange = () => {
+      console.log(`ICE connection state for ${conn.peer} is: ${conn.peerConnection.iceConnectionState}`);
+      if (conn.peerConnection.iceConnectionState === 'disconnected' || 
+          conn.peerConnection.iceConnectionState === 'failed' || 
+          conn.peerConnection.iceConnectionState === 'closed') {
+        handlePeerDisconnect(conn.peer);
+      }
+    };
+  }
+
+  // Handle connection errors
+  conn.on('error', function(err) {
+    console.error('Connection error with ' + conn.peer + ':', err);
+    handlePeerDisconnect(conn.peer); // Handle disconnection on error
   });
 }
 
