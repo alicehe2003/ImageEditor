@@ -41,7 +41,9 @@ let isLeaderProcessingRequest = false; // Flag to prevent concurrent leader proc
 let pendingRequest = null; // Stores the current request a follower is waiting for approval on
 let requestTimeout = null; // Timer for the pending request
 
-const REQUEST_TIMEOUT_MS = 10000; // 5 seconds timeout for follower requests
+// 100 seconds timeout for follower requests 
+// TODO: change this to something more reasonable 
+const REQUEST_TIMEOUT_MS = 100000; 
 
 // Declare processImageFile, handleReceivedImage, and applyOperationLocally
 // in a scope accessible by setupConnectionListeners and Module().then block
