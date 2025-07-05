@@ -1,5 +1,7 @@
 # Image Editor 
 
+Note: The following demo images do not show the collaborative mode. They will be updated soon. 
+
 <img src="readme_images/full.png" alt="full"/>
 
 ## Introduction 
@@ -172,13 +174,31 @@ On click of the information symbol beside each tool, users will be shown a descr
 
 Images can be moved around on the canvas area. 
 
-## TODO + ideas 
+# Collaboration mode 
+
+Work in progress. 
+
+The current implementation supports a serverless collaboration mode, with peer to peer (P2P) communication. There exists a single leader per shared instance, coordinating the peers and ordering the events. 
+
+There exists two major types of operations that require communication:
+1. Image operations. When one peer uploads an image, the image data must be shared with all other peers. 
+2. Filter operations. When one peer performs an operation to an image, only the name of the operation, the layer on which it is applied, and other parameter information (such as kernel or sigma values) are shared. This is in contrast to applying the operation locally, then sharing the resulting image information with all peers, which involves significantly more transfer of data, and is hence more prone to delays. 
+
+The diagrams below illustrate a new peer join flow, the leader election process, request timeouts, and how operations are applied and communicated. 
+
+<img src="readme_images/new_peer_join.png" alt="new peer join"/>
+<img src="readme_images/leader_election.png" alt="leader election"/>
+<img src="readme_images/operations.png" alt="operations"/>
+<img src="readme_images/request_timeout.png" alt="request timeout"/>
+
+# TODO + ideas 
 
 - Use SIMD instructions for WASM 
 - Open CV library 
 - WebGL 
 - Real-time collaborate system, set up web socket - UPDATE README 
 - Testing, specifically for race conditions and concurrency issues from remote instructions and data 
+- Image load time and network calls take too long. Compress data before sending it over the network, and decompress it upon receiving. 
 
 Links to consider 
 
@@ -195,8 +215,6 @@ https://silvia-odwyer.github.io/photon/demo.html
 # Known bugs
 
 - Browser sometimes refresh itself, losing all data. Likely cause: functions not fully loaded before uploading image, causing a refresh. Needs more investigation. 
-- When leader disconnects peers are not informed. Establish a heartbeat. 
-- Image load time and network calls take too long. Compress data before sending it over the network, and decompress it upon receiving. 
 
 
 
