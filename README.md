@@ -1,5 +1,7 @@
 # Image Editor 
 
+This branch contains a version that runs a local instance of the image editor, and does not support collaboration mode. Please visit the main branch (or check feature branches) for more information on collaborative image editing. 
+
 <img src="readme_images/full.png" alt="full"/>
 
 ## Introduction 
@@ -129,65 +131,6 @@ This method reduces image detail in visually consisten areas, and enables faster
 Times the number of milliseconds taken by each operation. 
 
 <img src="readme_images/timer.png" alt="timer"/>
-
-# Additional functionalities (TODO)
-
-## Image decompression 
-
-## Undo 
-
-## Redo 
-
-## Resize image to a larger size 
-
-Save original image information. If the desired size is smaller than the original image size, apply compression algorithm on the original image with the desired height and width. If the desired size is larger than the original image size, implement an algorithm to extrapolate. 
-
-## Revert to original image 
-
-For each unmerged layer, reverting it converts it to its original uploaded image. For merged layers, reverting it converts it to all of its original uploaded image, shown in multiple layers. 
-
-## Merge layers 
-
-Select two or more layers, and click the merge button to merge them into a single layer. The new layer will have the layer id of the lowest layer. 
-
-## Reorder layers 
-
-Drag and drop layers to reorder them, with each layer retaining its layer id information. 
-
-## Name layers and edit layer title 
-
-Give each layer a user-defined name, or rename layers. 
-
-## Information 
-
-On click of the information symbol beside each tool, users will be shown a description of what the tool does. 
-
-## Movable images 
-
-Images can be moved around on the canvas area. 
-
-## TODO + ideas 
-
-- Update README with demos of each filter, example use cases 
-- Use SIMD instructions for WASM 
-- Open CV library 
-- WebGL 
-- Real-time collaborate system, set up web socket 
-
-Links to consider 
-
-Upscaling image by converting from raster to vector 
-https://en.wikipedia.org/wiki/Image_tracing 
-
-To read
-
-https://www.figma.com/blog/webassembly-cut-figmas-load-time-by-3x/ 
-https://www.figma.com/blog/speeding-up-build-times/ 
-
-
-# Known bugs
-
-- Browser sometimes refresh itself, losing all data. Likely cause: functions not fully loaded before uploading image, causing a refresh. Needs more investigation. 
 
 
 
