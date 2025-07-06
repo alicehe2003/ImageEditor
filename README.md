@@ -196,9 +196,12 @@ The diagrams below illustrate a new peer join flow, the leader election process,
 - Use SIMD instructions for WASM 
 - Open CV library 
 - WebGL 
-- Real-time collaborate system, set up web socket - UPDATE README 
+- Undo/redo features. Involves tracking image state. 
+
+In collab mode: 
 - Testing, specifically for race conditions and concurrency issues from remote instructions and data 
 - Image load time and network calls take too long. Compress data before sending it over the network, and decompress it upon receiving. 
+- When a new user joins a P2P instance, have the leader send all of its current image layers to the new user. 
 
 Links to consider 
 
