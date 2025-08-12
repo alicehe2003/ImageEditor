@@ -155,6 +155,23 @@ The diagrams below illustrate a new peer join flow, the leader election process,
 <img src="readme_images/operations.png" alt="operations"/>
 <img src="readme_images/request_timeout.png" alt="request timeout"/>
 
+# Performance benchmarking 
+
+To reduce errors produced by jitter in the network, performance benchmarking is performed in the single-user (non-collaborative) scenario. 
+
+The time is calculated as follow: 
+1. Begin timer. 
+2. The JS function is called. (The function then allocates shared memory, copies the necessary data into the memory, and calls into C++. The C++ function is applied, then the flow returns to JS.)
+3. The JS function is exited, then the timer is stopped. 
+4. Round the runtime to the nearest millisecond, and display it. 
+The exact code can be found in the `timeOperation` function in `script.js`. 
+
+
+
+
+
+
+
 # Additional functionalities (TODO)
 
 ## Image decompression 
