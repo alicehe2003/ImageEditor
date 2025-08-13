@@ -13,6 +13,10 @@ WASM modules run in a sandbox environment isolates from the rest of the system, 
 ### Emscripten 
 Emscripten is an open-source compiler toolchain that allows you to compile C and C++ code into WASM, so it can run effectively in web browser. 
 
+`cd emsdk`
+
+`source emsdk_env.sh`
+
 Run the following in the command line: 
 
 `emcc image_processor.cpp \
@@ -164,6 +168,7 @@ The time is calculated as follow:
 2. The JS function is called. (The function then allocates shared memory, copies the necessary data into the memory, and calls into C++. The C++ function is applied, then the flow returns to JS.)
 3. The JS function is exited, then the timer is stopped. 
 4. Round the runtime to the nearest millisecond, and display it. 
+
 The exact code can be found in the `timeOperation` function in `script.js`. 
 
 
@@ -236,5 +241,5 @@ https://silvia-odwyer.github.io/photon/demo.html
 
 - Browser sometimes refresh itself, losing all data. Likely cause: functions not fully loaded before uploading image, causing a refresh. Needs more investigation. 
 
-
+- If the image is too large, WASM will try to reallocate memory. Then `putImageData()` fails because it’s trying to draw from WASM memory that was detached after a buffer reallocation. The fix is to recreate `ImageData` from the current WASM buffer before each draw, though this will require additional memory. Another option is to only allow "small" images. 
 
