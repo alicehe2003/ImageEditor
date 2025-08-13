@@ -192,8 +192,22 @@ The following is data for the monochrome methods, each click performed back to b
 |-------|-------|-------|-------|-------|
 | Average | 15.7  | 18.5  | 16.2  | 17.8  |
 
+The following is data for the gaussian blur, with sigma = 2 and kernel = 5, each click performed back to back (without re-uploading the image in between). Numbers are shown in milliseconds. 
 
-
+| Click Number | Gaussian Blur | 
+|-------|-------|
+| 1  | 76 |
+| 2  | 44 |
+| 3  | 47 |
+| 4  | 48 |
+| 5  | 48 |
+| 6  | 47 |
+| 7  | 47 |
+| 8  | 47 |
+| 9  | 47 |
+| 10 | 48 |
+|-------|-------|
+| Average | 49.9 |
 
 
 # Additional functionalities (TODO)
