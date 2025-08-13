@@ -172,22 +172,22 @@ The time is calculated as follow:
 The exact code can be found in the `timeOperation` function in `script.js`. 
 
 This is the image for which performance benchmarking is performed on: 
-<img src="images/Untitled1242_20250524133131.PNG" alt="translucent_png"/>
+<img src="readme_images/parrot_closeup.PNG" alt="parrot closeup"/>
 
 The following is data for the monochrome methods, each click performed back to back (without re-uploading the image in between). 
 
 | Click Number | Average Method | Luminosity Method | Lightness Method | ITU-R Method |
 |-------|-------|-------|-------|-------|
-| 1  | R1C2  | R1C3  | R1C4  | R1C5  |
-| 2  | R2C2  | R2C3  | R2C4  | R2C5  |
-| 3  | R3C2  | R3C3  | R3C4  | R3C5  |
-| 4  | R3C2  | R3C3  | R3C4  | R3C5  |
-| 5  | R3C2  | R3C3  | R3C4  | R3C5  |
-| 6  | R3C2  | R3C3  | R3C4  | R3C5  |
-| 7  | R3C2  | R3C3  | R3C4  | R3C5  |
-| 8  | R3C2  | R3C3  | R3C4  | R3C5  |
-| 9  | R3C2  | R3C3  | R3C4  | R3C5  |
-| 10 | R3C2  | R3C3  | R3C4  | R3C5  |
+| 1  | 17  | 20  | 19  | 20  |
+| 2  | 16  | 18  | 17  | 18  |
+| 3  | 17  | 18  | 17  | 15  |
+| 4  | 16  | 18  | 17  | 18  |
+| 5  | 16  | 18  | 17  | 18  |
+| 6  | 17  | 19  | 15  | 18  |
+| 7  | 16  | 19  | 15  | 16  |
+| 8  | 17  | 19  | 15  | 19  |
+| 9  | 9   | 18  | 15  | 18  |
+| 10 | 16  | 18  | 15  | 18  |
 
 
 
