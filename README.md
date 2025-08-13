@@ -173,8 +173,9 @@ The exact code can be found in the `timeOperation` function in `script.js`.
 
 This is the image for which performance benchmarking is performed on: 
 <img src="readme_images/parrot_closeup.PNG" alt="parrot closeup"/>
+The image is 730x946 pixels. 
 
-The following is data for the monochrome methods, each click performed back to back (without re-uploading the image in between). 
+The following is data for the monochrome methods, each click performed back to back (without re-uploading the image in between). Numbers are shown in milliseconds. 
 
 | Click Number | Average Method | Luminosity Method | Lightness Method | ITU-R Method |
 |-------|-------|-------|-------|-------|
@@ -188,7 +189,8 @@ The following is data for the monochrome methods, each click performed back to b
 | 8  | 17  | 19  | 15  | 19  |
 | 9  | 9   | 18  | 15  | 18  |
 | 10 | 16  | 18  | 15  | 18  |
-
+|-------|-------|-------|-------|-------|
+| Average | 15.7  | 18.5  | 16.2  | 17.8  |
 
 
 
