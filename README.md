@@ -226,9 +226,7 @@ The following is data for the edge detection methods. The LoG Method is applied 
 |-------|-------|-------|
 | Average | 21.7 | 53.2 |
 
-
-
-
+The bucket fill tool and resizing cannot be tested in the same manner, as the results would not hold significance. The bucket tool algorithm is a graph search algorithm, hence is largely dependent on the area for which it covers. Resizing changes the size of the original image, hence subsequent clicks would be applied on images of different sizes. 
 
 # Additional functionalities (TODO)
 
