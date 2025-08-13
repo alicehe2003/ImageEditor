@@ -209,6 +209,26 @@ The following is data for the gaussian blur, with sigma = 2 and kernel = 5, each
 |-------|-------|
 | Average | 49.9 |
 
+The following is data for the edge detection methods. The LoG Method is applied with sigma = 2, kernel = 5. Each click performed back to back (without re-uploading the image in between). Numbers are shown in milliseconds. 
+
+| Click Number | Sobel Method | Laplacian of Gaussian Method |
+|-------|-------|-------|
+| 1  | 27 | 58 | 
+| 2  | 21 | 52 | 
+| 3  | 21 | 52 |
+| 4  | 22 | 54 |
+| 5  | 20 | 53 |
+| 6  | 22 | 53 |
+| 7  | 21 | 52 |
+| 8  | 21 | 53 |
+| 9  | 21 | 53 |
+| 10 | 21 | 52 |
+|-------|-------|-------|
+| Average | 21.7 | 53.2 |
+
+
+
+
 
 # Additional functionalities (TODO)
 
